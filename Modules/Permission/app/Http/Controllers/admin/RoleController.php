@@ -13,7 +13,7 @@ class RoleController extends Controller
      */
     public function index()
     {
-        $roles = Role::query()->latest()->get();
+        $roles = Role::query()->latest('id')->get();
         return view('permission::admin.role.index', compact('roles'));
     }
 
