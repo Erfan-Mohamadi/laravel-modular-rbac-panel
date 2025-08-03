@@ -17,8 +17,8 @@ A modular Laravel 10+ admin panel starter built with **Role-Based Access Control
 
 ## 📦 Tech Stack
 
-- **Laravel 10+**
-- **PHP 8.1+**
+- **Laravel 12+**
+- **PHP 8.2+**
 - **Blade Templating**
 - **nwidart/laravel-modules**
 - **spatie/laravel-permission**
