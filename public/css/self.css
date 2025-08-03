@@ -1,0 +1,42 @@
+/* self CSS */
+@media print {
+    /* Hide unwanted sections */
+    #header,
+    #footer,
+    #nav,
+    #peyment-section,
+    #nav-top,
+    #aside-bar {
+        display: none !important;
+    }
+
+    /* Make the content area full width */
+    body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        color: black;
+    }
+    a{
+        background: #fff;
+        color: black;
+        text-decoration: none
+    }
+    button{
+        display: none !important;
+
+    }
+
+
+    main, .main-content, .content {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Remove box shadows or backgrounds that don't print well */
+    * {
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+}

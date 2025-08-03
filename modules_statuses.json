@@ -1,0 +1,8 @@
+{
+    "Admin": true,
+    "Auth": true,
+    "Core": true,
+    "Customer": true,
+    "Dashboard": true,
+    "Permission": true
+}
