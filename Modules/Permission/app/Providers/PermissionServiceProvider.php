@@ -5,6 +5,8 @@ namespace Modules\Permission\Providers;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Modules\Admin\Models\Admin;
+use Modules\Permission\Models\Role;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -22,6 +24,11 @@ class PermissionServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::before(function ($user, $ability) {
+            // Adjust this condition based on how you identify super admins
+            return $user instanceof Admin && $user->hasRole(Role::SUPER_ADMIN) ? true : null;
+        });
+
         $this->registerCommands();
         $this->registerCommandSchedules();
         $this->registerTranslations();

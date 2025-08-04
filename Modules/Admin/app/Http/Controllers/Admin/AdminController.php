@@ -5,6 +5,7 @@ namespace Modules\Admin\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Admin\Models\Admin;
+use Modules\Permission\Models\Role;
 
 class AdminController extends Controller
 {
@@ -13,7 +14,7 @@ class AdminController extends Controller
      */
     public function index()
     {
-        $admins = Admin::query()->latest()->get();
+        $admins = Admin::query()->with('role')->latest()->get();
         return view('admin::admin.admin.index', compact('admins'));
     }
 
@@ -22,7 +23,8 @@ class AdminController extends Controller
      */
     public function create()
     {
-        return view('admin::admins.create');
+        $roles = Role::cachedRoles();
+        return view('admin::admin.admin.create', compact('roles'));
     }
 
     /**
@@ -32,7 +34,9 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:admins,email',
+            'mobile' => 'required|string|unique:admins,mobile|max:20',
+            'role_id' => 'required|exists:roles,id',
+            'status' => 'required|in:active,inactive',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
@@ -40,8 +44,9 @@ class AdminController extends Controller
 
         Admin::create($validated);
 
-        return redirect()->route('admin.admins.index')->with('success', 'ادمین با موفقیت اضافه شد.');
+        return redirect()->route('admin.index')->with('success', 'ادمین با موفقیت اضافه شد.');
     }
+
 
     /**
      * Display the specified admin.

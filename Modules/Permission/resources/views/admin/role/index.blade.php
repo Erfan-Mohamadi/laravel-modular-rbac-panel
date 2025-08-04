@@ -47,10 +47,11 @@
                                                 style="margin-left: 1rem; border-radius: 5px"
                                                 onclick="confirmDelete('delete-{{ $role->id }}')"
                                                 title="حذف"
-                                                @if($role->users_count > 0) disabled @endif>
+                                                @if($role->name === $superAdminName) disabled @endif>
                                             <i class="fas fa-trash"></i>
                                             <i class="bi bi-trash3"></i>
                                         </button>
+
 
                                         <form action="{{ route('roles.destroy', $role) }}"
                                               method="POST" id="delete-{{ $role->id }}">

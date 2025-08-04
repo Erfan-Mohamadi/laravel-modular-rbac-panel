@@ -19,11 +19,18 @@ class Admin extends Authenticatable
      * The attributes that are mass assignable.
      */
 
+    public function role()
+    {
+        return $this->belongsTo(\Modules\Permission\Models\Role::class, 'role_id');
+    }
+
     protected $guard_name = 'admin'; // Important!
+
     protected $fillable = [
         'name',
         'mobile',
         'password',
+        'role_id',
     ];
 
     protected $hidden = [

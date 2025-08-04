@@ -23,12 +23,12 @@ class RolesAndPermissionSeeder extends Seeder
         }
 
         $permissions = [
-            'access_dashboard' => 'دسترسی به داشبورد',
+            'access_dashboard' => 'مشاهده آمارهای داشبورد',
             //customer
-            'view customers' => 'دیدن کاربر',
-            'create customers' => 'ساختن کاربر',
+            'view customers' => 'مشاهده کاربر',
+            'create customers' => 'ایجاد کاربر',
             'modify customers' => 'ویرایش کاربر',
-            'delete customers' => 'پاک کردن کاربر',
+            'delete customers' => 'حذف کاربر',
             ];
 
         foreach ($permissions as $name => $label) {

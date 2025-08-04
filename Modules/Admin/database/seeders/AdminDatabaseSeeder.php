@@ -16,6 +16,7 @@ class AdminDatabaseSeeder extends Seeder
             'email' => 'admin@test.com',
             'password' => bcrypt('password'),
             'mobile' => '0999999999',
+            'role_id' => 1,
         ]);
 
         // Give super admin all permissions
