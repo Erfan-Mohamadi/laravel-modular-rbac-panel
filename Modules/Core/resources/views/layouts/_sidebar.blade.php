@@ -56,10 +56,28 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/ui/timeline">
-                                <i class="nav-icon bi bi-circle"></i>
-                                <p>Timeline</p>
+                            <a href="#" class="nav-link">
+                                <i class="nav-icon bi bi-tree-fill"></i>
+                                <p>
+مناطق
+                                    <i class="nav-arrow bi bi-chevron-right"></i>
+                                </p>
                             </a>
+                            <ul class="nav nav-treeview" role="navigation" aria-label="Navigation 7">
+                                <li class="nav-item" >
+                                    <a class="nav-link" href="{{ route('cities.index') }}">
+                                        <i class="nav-icon bi bi-circle"></i>
+                                        <p>شهرها</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#">
+                                        <i class="nav-icon bi bi-circle"></i>
+                                        <p>استان‌ها</p>
+                                    </a>
+                                </li>
+
+                            </ul>
                         </li>
                     </ul>
                 </li>

@@ -1,56 +1,77 @@
 <?php
 
-namespace Modules\Area\Http\Controllers;
+namespace Modules\Area\Http\Controllers\Admin;
 
+use Illuminate\Support\Facades\Cache;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Modules\Area\Models\City;
+use Modules\Area\Models\Province;
+use Modules\Area\Http\Requests\Admin\StoreCityRequest;
+use Modules\Area\Http\Requests\Admin\UpdateCityRequest;
 
 class CityController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        return view('area::index');
+        $cities = Cache::rememberForever('cities_list', function () {
+            return City::query()->select('id', 'name', 'province_id')
+                ->with(['province:id,name'])
+                ->latest('id')
+                ->paginate(15);
+        });
+
+        $provinces = Cache::rememberForever('provinces_list', function () {
+            return Province::query()->orderBy('name')->get(['id', 'name']);
+        });
+
+        return view('area::admin.areas.index', compact('cities', 'provinces'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        return view('area::create');
+        $provinces = Cache::rememberForever('provinces_list', function () {
+            return Province::query()->orderBy('name')->get(['id', 'name']);
+        });
+
+        return view('area::admin.areas.create', compact('provinces'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function store(StoreCityRequest $request)
     {
-        return view('area::show');
+        City::query()->create($request->only('name', 'province_id'));
+
+        Cache::forget('cities_list');
+
+        return redirect()->route('admin.areas.index')->with('success', 'City created successfully.');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit($id)
     {
-        return view('area::edit');
+        $city = City::query()->findOrFail($id);
+
+        $provinces = Cache::rememberForever('provinces_list', function () {
+            return Province::query()->orderBy('name')->get(['id', 'name']);
+        });
+
+        return view('area::admin.areas.edit', compact('city', 'provinces'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
+    public function update(UpdateCityRequest $request, $id)
+    {
+        $city = City::query()->findOrFail($id);
+        $city->update($request->only('name', 'province_id'));
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+        Cache::forget('cities_list');
+
+        return redirect()->route('admin.areas.index')->with('success', 'City updated successfully.');
+    }
+
+    public function destroy($id)
+    {
+        City::query()->findOrFail($id)->delete();
+
+        Cache::forget('cities_list');
+
+        return redirect()->route('admin.areas.index')->with('success', 'City deleted successfully.');
+    }
 }

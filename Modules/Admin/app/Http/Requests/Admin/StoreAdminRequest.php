@@ -16,9 +16,9 @@ class StoreAdminRequest extends FormRequest
     public function rules()
     {
         return [
-            'name' => 'required|string|max:255',
-            'mobile' => 'required|string|unique:admins,mobile|max:20',
-            'role_id' => 'required|exists:roles,id',
+            'name' => 'bail|required|string|max:255',
+            'mobile' => 'bail|required|string|unique:admins,mobile|max:20',
+            'role_id' => 'bail|required|exists:roles,id',
             'status' => 'required|boolean',
             'password' => 'required|string|min:8|confirmed',
         ];

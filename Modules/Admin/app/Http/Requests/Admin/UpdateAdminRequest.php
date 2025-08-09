@@ -17,9 +17,9 @@ class UpdateAdminRequest extends FormRequest
         $adminId = $this->route('admin')->id; // get current admin id from route
 
         return [
-            'name' => 'required|string|max:255',
-            'mobile' => "required|string|max:20|unique:admins,mobile,{$adminId}",
-            'role_id' => 'required|exists:roles,id',
+            'name' => 'bail|required|string|max:255',
+            'mobile' => "bail|required|string|max:20|unique:admins,mobile,{$adminId}",
+            'role_id' => 'bail|required|exists:roles,id',
             'status' => 'required|boolean',
             'password' => 'nullable|string|min:8|confirmed',
         ];
