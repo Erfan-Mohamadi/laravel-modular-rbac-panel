@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Admin\Models\Admin;
 use Modules\Permission\Models\Role;
+use Illuminate\Support\Facades\Cache;
+use Modules\Admin\Http\Requests\Admin\StoreAdminRequest;
+use Modules\Admin\Http\Requests\Admin\UpdateAdminRequest;
 
 class AdminController extends Controller
 {
@@ -14,7 +17,10 @@ class AdminController extends Controller
      */
     public function index()
     {
-        $admins = Admin::query()->with('role')->latest()->get();
+        $admins = Cache::rememberForever('admins_list', function () {
+            return Admin::with('role')->latest()->get();
+        });
+
         return view('admin::admin.admin.index', compact('admins'));
     }
 
@@ -23,34 +29,26 @@ class AdminController extends Controller
      */
     public function create()
     {
-        // Exclude super_admin role from selectable roles
-        $roles = Role::cachedRoles()->filter(fn($role) => $role->name !== Role::SUPER_ADMIN);
+        $roles = Cache::rememberForever('roles_except_super_admin', function () {
+            return Role::cachedRoles()->filter(fn($role) => $role->name !== Role::SUPER_ADMIN);
+        });
+
         return view('admin::admin.admin.create', compact('roles'));
     }
 
     /**
      * Store a newly created admin.
      */
-    public function store(Request $request)
+    public function store(StoreAdminRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'mobile' => 'required|string|unique:admins,mobile|max:20',
-            'role_id' => 'required|exists:roles,id',
-            'status' => 'required|boolean',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $superAdminRoleId = Role::where('name', Role::SUPER_ADMIN)->value('id');
-
-        if ($validated['role_id'] == $superAdminRoleId) {
-            return back()->withErrors(['role_id' => 'نمی‌توانید نقش مدیر کل را به این ادمین اختصاص دهید.'])
-                ->withInput();
-        }
+        $validated = $request->validated();
 
         $validated['password'] = bcrypt($validated['password']);
 
         Admin::create($validated);
+
+        // Clear admins cache on create
+        Cache::forget('admins_list');
 
         return redirect()->route('admin.index')->with('success', 'ادمین با موفقیت اضافه شد.');
     }
@@ -60,31 +58,22 @@ class AdminController extends Controller
      */
     public function edit(Admin $admin)
     {
-        // Exclude super_admin role from selectable roles
-        $roles = Role::cachedRoles()->filter(fn($role) => $role->name !== Role::SUPER_ADMIN);
+        $roles = Cache::rememberForever('roles_except_super_admin', function () {
+            return Role::cachedRoles()->filter(fn($role) => $role->name !== Role::SUPER_ADMIN);
+        });
+
         $isSuperAdmin = $admin->role?->name === Role::SUPER_ADMIN;
+
         return view('admin::admin.admin.edit', compact('roles', 'admin', 'isSuperAdmin'));
     }
 
     /**
      * Update the specified admin.
      */
-    public function update(Request $request, Admin $admin)
+    public function update(UpdateAdminRequest $request, Admin $admin)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'mobile' => "required|string|max:20|unique:admins,mobile,{$admin->id}",
-            'role_id' => 'required|exists:roles,id',
-            'status' => 'required|boolean',
-            'password' => 'nullable|string|min:8|confirmed',
-        ]);
+        $validated = $request->validated();
 
-        $superAdminRoleId = Role::where('name', Role::SUPER_ADMIN)->value('id');
-
-        if ($validated['role_id'] == $superAdminRoleId) {
-            return back()->withErrors(['role_id' => 'نمی‌توانید نقش مدیر کل را به این ادمین اختصاص دهید.'])
-                ->withInput();
-        }
 
         if (!empty($validated['password'])) {
             $validated['password'] = bcrypt($validated['password']);
@@ -92,12 +81,13 @@ class AdminController extends Controller
             unset($validated['password']);
         }
 
-        // Prevent role and status change if this admin is super_admin
         if ($admin->role?->name === Role::SUPER_ADMIN) {
             unset($validated['role_id'], $validated['status']);
         }
 
         $admin->update($validated);
+
+        Cache::forget('admins_list');
 
         return redirect()->route('admin.index')->with('success', 'ادمین با موفقیت بروزرسانی شد.');
     }
@@ -113,9 +103,11 @@ class AdminController extends Controller
 
         $admin->delete();
 
+        // Clear admins cache on delete
+        Cache::forget('admins_list');
+
         return redirect()->route('admin.index')->with('success', 'ادمین با موفقیت حذف شد.');
     }
-
 
     /**
      * Display the specified admin.
@@ -126,7 +118,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Show permissions page for an admin (if using Spatie).
+     * Show permissions page for an admin.
      */
     public function permissions(Admin $admin)
     {
