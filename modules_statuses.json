@@ -4,5 +4,6 @@
     "Core": true,
     "Customer": true,
     "Dashboard": true,
-    "Permission": true
+    "Permission": true,
+    "Area": true
 }

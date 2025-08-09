@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
+use Modules\Admin\Models\Admin;  // Import Admin model
+
 class AuthController extends Controller
 {
     // =============================================
@@ -40,8 +42,11 @@ class AuthController extends Controller
 
             $admin = Auth::guard('admin')->user();
 
-            // Optional login event
+            // Update last login date
+            $admin->last_login_date = now();
+            $admin->save();
 
+            // Optional login event
             activity('احراز هویت')
                 ->causedBy($admin)
                 ->withProperties(['موبایل' => $admin->mobile])
@@ -72,6 +77,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.login.form');
+        return redirect()->route('showLoginForm');
     }
 }

@@ -42,7 +42,7 @@
                                         {{ $admin->status ? 'فعال' : 'غیرفعال' }}</span>
                                 </td>
 
-                                <td>{{ $admin->last_login_date ?? '---' }}</td>
+                                <td>{{ $admin->formatted_last_login_date }}</td>
                                 <td>{{ verta($admin->created_at)->format('Y/m/d') }}</td>
                                 <td>
                                     <div class="btn-group">
@@ -53,19 +53,22 @@
                                             <i class="bi bi-pencil-fill"></i>
                                         </a>
 
-                                        <button class="btn btn-sm btn-danger"
-                                                style="margin-left: 1rem; border-radius: 5px"
-                                                onclick="confirmDelete('delete-{{ $admin->id }}')"
-                                                title="حذف">
-                                            <i class="fas fa-trash"></i>
-                                            <i class="bi bi-trash3"></i>
-                                        </button>
+                                        @if($admin->role?->name !== \Modules\Permission\Models\Role::SUPER_ADMIN)
+                                            <button class="btn btn-sm btn-danger"
+                                                    style="margin-left: 1rem; border-radius: 5px"
+                                                    onclick="confirmDelete('delete-{{ $admin->id }}')"
+                                                    title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                                <i class="bi bi-trash3"></i>
+                                            </button>
 
-                                        <form action="{{ route('admin.destroy', $admin) }}"
-                                              method="POST" id="delete-{{ $admin->id }}">
-                                            @csrf
-                                            @method('DELETE')
-                                        </form>
+                                            <form action="{{ route('admin.destroy', $admin) }}"
+                                                  method="POST" id="delete-{{ $admin->id }}">
+                                                @csrf
+                                                @method('DELETE')
+                                            </form>
+                                        @endif
+
                                     </div>
                                 </td>
                             </tr>

@@ -33,6 +33,11 @@ class Admin extends Authenticatable
         'role_id',
     ];
 
+    public function getFormattedLastLoginDateAttribute()
+    {
+        return $this->last_login_date ? verta($this->last_login_date)->format('Y/m/d H:i') : '---';
+    }
+
     protected $hidden = [
         'password',
         'remember_token',
@@ -40,6 +45,7 @@ class Admin extends Authenticatable
 
     protected $casts = [
         'password' => 'hashed',
+        'last_login_date' => 'datetime',
     ];
 
     /*------------------------------------
