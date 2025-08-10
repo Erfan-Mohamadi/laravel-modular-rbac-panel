@@ -5,5 +5,7 @@
     "Customer": true,
     "Dashboard": true,
     "Permission": true,
-    "Area": true
+    "Area": true,
+    "Product": true,
+    "Category": true
 }

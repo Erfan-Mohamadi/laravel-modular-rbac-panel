@@ -17,7 +17,7 @@ class CityController extends Controller
             return City::query()->select('id', 'name', 'province_id')
                 ->with(['province:id,name'])
                 ->latest('id')
-                ->paginate(15);
+                ->paginate(10);
         });
 
         $provinces = Cache::rememberForever('provinces_list', function () {

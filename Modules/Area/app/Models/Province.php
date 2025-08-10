@@ -20,12 +20,16 @@ class Province extends Model
 
         static::saved(function () {
             Cache::forget('provinces');
-            Cache::rememberForever('provinces', fn () => static::all());
+            Cache::rememberForever('provinces', fn () => static::query()
+                ->select('id', 'name')
+                ->latest('id')->get());
         });
 
         static::deleted(function () {
             Cache::forget('provinces');
-            Cache::rememberForever('provinces', fn () => static::all());
+            Cache::rememberForever('provinces', fn () => static::query()
+                ->select('id', 'name')
+                ->latest('id')->get());
         });
     }
 }

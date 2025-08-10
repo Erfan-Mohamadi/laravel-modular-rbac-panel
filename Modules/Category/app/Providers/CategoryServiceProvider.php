@@ -1,41 +1,32 @@
 <?php
 
-namespace Modules\Permission\Providers;
+namespace Modules\Category\Providers;
 
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use Modules\Admin\Models\Admin;
-use Modules\Permission\Models\Role;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
-class PermissionServiceProvider extends ServiceProvider
+class CategoryServiceProvider extends ServiceProvider
 {
     use PathNamespace;
 
-    protected string $name = 'Permission';
+    protected string $name = 'Category';
 
-    protected string $nameLower = 'permission';
+    protected string $nameLower = 'category';
 
     /**
      * Boot the application events.
      */
     public function boot(): void
     {
-        Gate::before(function ($user, $ability) {
-            // Adjust this condition based on how you identify super admins
-            return $user->hasRole(Role::SUPER_ADMIN) ? true : null;
-        });
-
         $this->registerCommands();
         $this->registerCommandSchedules();
         $this->registerTranslations();
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
-        $this->SuperAdminPermissions();
     }
 
     /**
@@ -114,18 +105,6 @@ class PermissionServiceProvider extends ServiceProvider
             }
         }
     }
-
-//    ignore super-admin roles
-
-    protected static function SuperAdminPermissions()
-    {
-        // Implicitly grant "Super Admin" role all permissions
-        // This works in the app by using gate-related functions like auth()->user->can() and @can()
-        Gate::before(function ($user, $ability) {
-            return $user->hasRole('Super Admin') ? true : null;
-        });
-    }
-
 
     /**
      * Merge config from the given path recursively.
