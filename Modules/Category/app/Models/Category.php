@@ -5,6 +5,7 @@ namespace Modules\Category\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\Product\Models\Brand;
+use Modules\Product\Models\Specialty;
 
 class Category extends Model
 {
@@ -67,5 +68,11 @@ class Category extends Model
     public function scopeActive($query)
     {
         return $query->where('status', true);
+    }
+
+
+    public function specialties()
+    {
+        return $this->belongsToMany(Specialty::class, 'category_specialty');
     }
 }

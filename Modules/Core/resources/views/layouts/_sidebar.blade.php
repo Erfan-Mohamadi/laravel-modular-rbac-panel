@@ -3,17 +3,17 @@
     <!--begin::Sidebar Brand-->
     <div class="sidebar-brand">
         <!--begin::Brand Link-->
-                <a href="{{route('admin.dashboard')}}" class="brand-link">
-        <!--begin::Brand Image-->
-{{--        <img--}}
-{{--            src="{{ asset('assets/img/AdminLTELogo.png') }}"--}}
-{{--            alt="AdminLTE Logo"--}}
-{{--            class="brand-image opacity-75 shadow"--}}
-{{--        />--}}
-        <!--end::Brand Image-->
-        <!--begin::Brand Text-->
-        <span class="brand-text fw-light">Admin panel</span>
-        <!--end::Brand Text-->
+        <a href="{{route('admin.dashboard')}}" class="brand-link">
+            <!--begin::Brand Image-->
+            {{--        <img--}}
+            {{--            src="{{ asset('assets/img/AdminLTELogo.png') }}"--}}
+            {{--            alt="AdminLTE Logo"--}}
+            {{--            class="brand-image opacity-75 shadow"--}}
+            {{--        />--}}
+            <!--end::Brand Image-->
+            <!--begin::Brand Text-->
+            <span class="brand-text fw-light">Admin panel</span>
+            <!--end::Brand Text-->
         </a>
         <!--end::Brand Link-->
     </div>
@@ -99,6 +99,18 @@
                             <a class="nav-link" href="{{ route('brands.index') }}">
                                 <i class="nav-icon bi bi-tags"></i>
                                 <p>برندها</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('attributes.index') }}">
+                                <i class="nav-icon bi bi-sliders"></i>
+                                <p>خصوصیات محصولات</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('specialties.index') }}">
+                                <i class="nav-icon bi bi-stars"></i>
+                                <p>تخصص‌ها</p>
                             </a>
                         </li>
                     </ul>
