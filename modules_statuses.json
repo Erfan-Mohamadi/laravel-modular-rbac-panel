@@ -7,5 +7,6 @@
     "Permission": true,
     "Area": true,
     "Product": true,
-    "Category": true
+    "Category": true,
+    "Store": true
 }

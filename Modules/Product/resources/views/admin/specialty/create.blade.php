@@ -51,7 +51,7 @@
 
                         <!-- Add Items Button & Summary -->
                         <div id="add-items-container" style="display: none;">
-                            <button type="button" id="show-items-modal-btn" class="btn btn-outline-primary mb-2" type="button">
+                            <button type="button" id="show-items-modal-btn" class="btn btn-outline-primary mb-2" >
                                 <i class="bi bi-plus"></i> افزودن گزینه‌ها
                             </button>
                             <div id="items-summary" class="mb-2"></div>

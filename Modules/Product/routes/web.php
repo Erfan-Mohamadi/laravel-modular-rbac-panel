@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Product\Http\Controllers\Admin\AttributeItemController;
 use Modules\Product\Http\Controllers\Admin\BrandController;
 use Modules\Product\Http\Controllers\Admin\AttributeController;
+use Modules\Product\Http\Controllers\Admin\ProductController;
 use Modules\Product\Http\Controllers\Admin\SpecialtyController;
 
 /*
@@ -26,4 +27,10 @@ Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
     Route::resource('specialties', SpecialtyController::class);
     Route::get('specialties/{specialty}/items', [SpecialtyController::class, 'getSpecialtyItems'])
         ->name('specialties.items');
+
+    Route::resource('products', ProductController::class)->names('products');
+    Route::patch('products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])
+        ->name('products.toggle-status');
+    Route::patch('products/{product}/change-availability', [ProductController::class, 'changeAvailabilityStatus'])
+        ->name('products.change-availability');
 });

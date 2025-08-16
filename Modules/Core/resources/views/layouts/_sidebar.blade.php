@@ -113,8 +113,22 @@
                                 <p>تخصص‌ها</p>
                             </a>
                         </li>
+                        {{-- ✅ New Products menu item --}}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('products.index') }}">
+                                <i class="nav-icon bi bi-bag-check"></i>
+                                <p>محصولات</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('stores.index') }}" class="nav-link">
+                        <i class="nav-icon bi bi-speedometer"></i>
+                        <p>انبار</p>
+                    </a>
+                </li>
+
 
             </ul>
             <!--end::Sidebar Menu-->

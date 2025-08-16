@@ -81,7 +81,7 @@ class SpecialtyController extends Controller
         }
 
         return redirect()->route('specialties.index')
-            ->with('success', 'Specialty created successfully.');
+            ->with('success', 'ویژگی‌ یا موفقیت ثبت شد');
     }
 
     public function show(Specialty $specialty)
@@ -139,14 +139,14 @@ class SpecialtyController extends Controller
         }
 
         return redirect()->route('specialties.index')
-            ->with('success', 'Specialty updated successfully.');
+            ->with('success', 'ویژگی‌ یا موفقیت ویرایش شد');
     }
 
     public function destroy(Specialty $specialty)
     {
         $specialty->delete();
         return redirect()->route('specialties.index')
-            ->with('success', 'Specialty deleted successfully.');
+            ->with('success', 'ویژگی‌ یا موفقیت حذف شد');
     }
 
     // API methods for getting specialty items

@@ -49,21 +49,32 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
+                        <div id="add-items-container" style="display: none;">
+                            <button type="button" id="show-items-modal-btn" class="btn btn-outline-primary mb-2" >
+                                <i class="bi bi-plus"></i> افزودن گزینه‌ها
+                            </button>
+                            <div id="items-summary" class="mb-2"></div>
+                        </div>
 
-                        <!-- Categories Field -->
-                        <div class="form-group mb-3">
-                            <label for="categories" class="form-label">دسته‌بندی‌ها</label>
-                            <select id="categories" name="categories[]" class="form-select @error('categories') is-invalid @enderror" multiple>
+                        <div class="mb-3">
+                            <label for="categories" class="form-label fw-bold">دسته‌بندی‌ها</label>
+                            <select name="categories[]" id="categories" class="form-select select2" multiple>
                                 @foreach($categories as $category)
                                     <option value="{{ $category->id }}"
-                                        {{ (collect(old('categories', $specialty->categories->pluck('id')->toArray()))->contains($category->id)) ? 'selected' : '' }}>
+                                        {{ in_array(
+                                            $category->id,
+                                            old(
+                                                'categories',
+                                                isset($specialty) ? $specialty->categories->pluck('id')->toArray() : []
+                                            )
+                                        ) ? 'selected' : '' }}>
                                         {{ $category->name }}
                                     </option>
                                 @endforeach
                             </select>
                             <small class="form-text text-muted">برای انتخاب چند دسته‌بندی کلید Ctrl را نگه دارید.</small>
                             @error('categories')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
                         </div>
 
@@ -130,9 +141,7 @@
             </div>
         </div>
     </div>
-@endsection
 
-@push('scripts')
     <script>
         // Show/Hide items field based on type
         document.addEventListener('DOMContentLoaded', function() {
@@ -179,4 +188,4 @@
             toggleItemsField();
         });
     </script>
-@endpush
+@endsection

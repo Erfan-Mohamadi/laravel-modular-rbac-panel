@@ -95,15 +95,21 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('specialties.edit', $specialty) }}" class="btn btn-sm btn-primary" title="ویرایش">
-                                        <i class="fas fa-edit"></i>
+                                    <a href="{{ route('specialties.edit', $specialty) }}"
+                                       class="btn btn-sm btn-warning" title="ویرایش"
+                                       style="margin-left: 1rem; border-radius: 5px">
+                                        <i class="bi bi-pencil-fill"></i>
                                     </a>
-                                    <form action="{{ route('specialties.destroy', $specialty) }}" method="POST" class="d-inline" onsubmit="return confirm('آیا مطمئن هستید که می‌خواهید این ویژگی حذف شود؟');">
+                                    <button class="btn btn-sm btn-danger"
+                                            style="margin-left: 1rem; border-radius: 5px"
+                                            onclick="confirmDelete('delete-{{ $specialty->id }}')"
+                                            title="حذف">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                    <form action="{{ route('specialties.destroy', $specialty) }}"
+                                          method="POST" id="delete-{{ $specialty->id }}" style="display: none;">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="btn btn-sm btn-danger" title="حذف">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
                                     </form>
                                 </td>
                             </tr>
