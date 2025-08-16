@@ -11,6 +11,10 @@ class StoreTransaction extends Model
 {
     use HasFactory;
 
+    //======================================================================
+    // MODEL CONFIGURATION
+    //======================================================================
+
     protected $fillable = [
         'store_id',
         'type',
@@ -22,26 +26,26 @@ class StoreTransaction extends Model
         'count' => 'integer',
     ];
 
-    // Transaction types constants
+    //======================================================================
+    // CONSTANTS
+    //======================================================================
+
     const TYPE_INCREMENT = 'increment';
     const TYPE_DECREMENT = 'decrement';
 
-    // Get all transaction types
-    public static function getTransactionTypes()
-    {
-        return [
-            self::TYPE_INCREMENT => 'Increment',
-            self::TYPE_DECREMENT => 'Decrement'
-        ];
-    }
+    //======================================================================
+    // RELATIONSHIPS
+    //======================================================================
 
-    // Relationship with Store
     public function store()
     {
         return $this->belongsTo(Store::class);
     }
 
-    // Scopes
+    //======================================================================
+    // SCOPES
+    //======================================================================
+
     public function scopeIncrements(Builder $query)
     {
         return $query->where('type', self::TYPE_INCREMENT);
@@ -67,7 +71,10 @@ class StoreTransaction extends Model
         return $query->where('created_at', '>=', now()->subDays($days));
     }
 
-    // Accessors
+    //======================================================================
+    // ACCESSORS
+    //======================================================================
+
     public function getFormattedCountAttribute()
     {
         return number_format($this->count, 2);
@@ -85,7 +92,18 @@ class StoreTransaction extends Model
             '-' . $this->formatted_count;
     }
 
-    // Helper Methods
+    //======================================================================
+    // HELPER METHODS
+    //======================================================================
+
+    public static function getTransactionTypes()
+    {
+        return [
+            self::TYPE_INCREMENT => 'Increment',
+            self::TYPE_DECREMENT => 'Decrement'
+        ];
+    }
+
     public function isIncrement()
     {
         return $this->type === self::TYPE_INCREMENT;
@@ -95,6 +113,10 @@ class StoreTransaction extends Model
     {
         return $this->type === self::TYPE_DECREMENT;
     }
+
+    //======================================================================
+    // FACTORY
+    //======================================================================
 
     protected static function newFactory()
     {

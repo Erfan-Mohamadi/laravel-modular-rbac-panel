@@ -98,7 +98,7 @@
                                 <option value="">انتخاب کنید</option>
                                 @if(isset($availabilityStatuses))
                                     @foreach($availabilityStatuses as $key => $label)
-                                        <option value="{{ $key }}" {{ old('availability_status', 'available') == $key ? 'selected' : '' }}>
+                                        <option value="{{ $key }}" {{ old('availability_status', 'available') == $key }}>
                                             {{ $label }}
                                         </option>
                                     @endforeach

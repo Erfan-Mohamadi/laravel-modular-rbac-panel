@@ -11,6 +11,10 @@ class Store extends Model
 {
     use HasFactory;
 
+    //======================================================================
+    // MODEL CONFIGURATION
+    //======================================================================
+
     protected $fillable = [
         'product_id',
         'balance'
@@ -19,6 +23,10 @@ class Store extends Model
     protected $casts = [
         'balance' => 'integer'
     ];
+
+    //======================================================================
+    // RELATIONSHIPS
+    //======================================================================
 
     public function product()
     {
@@ -30,7 +38,10 @@ class Store extends Model
         return $this->hasMany(StoreTransaction::class);
     }
 
-    // Scopes
+    //======================================================================
+    // SCOPES
+    //======================================================================
+
     public function scopeWithPositiveBalance(Builder $query)
     {
         return $query->where('balance', '>', 0);
@@ -46,7 +57,10 @@ class Store extends Model
         return $query->where('balance', '<', 0);
     }
 
-    // Helper Methods
+    //======================================================================
+    // STOCK OPERATIONS
+    //======================================================================
+
     public function addStock($amount, $description = null)
     {
         $this->increment('balance', $amount);
@@ -88,7 +102,9 @@ class Store extends Model
         ]);
     }
 
-    // Accessors
+    //======================================================================
+    // ACCESSORS
+    //======================================================================
 
     public function getTotalIncrementsAttribute()
     {
@@ -99,5 +115,4 @@ class Store extends Model
     {
         return $this->transactions()->where('type', 'decrement')->sum('count');
     }
-
 }
