@@ -1,5 +1,4 @@
 <?php
-// Modules/Product/Models/Product.php
 
 namespace Modules\Product\Models;
 
@@ -12,6 +11,10 @@ use Modules\Category\Models\Category;
 class Product extends Model
 {
     use HasFactory;
+
+    //======================================================================
+    // MODEL CONFIGURATION
+    //======================================================================
 
     protected $fillable = [
         'title',
@@ -28,41 +31,37 @@ class Product extends Model
         'status' => 'boolean'
     ];
 
+    //======================================================================
+    // CONSTANTS
+    //======================================================================
 
-    // Availability status constants
     const COMING_SOON = 'coming_soon';
     const AVAILABLE = 'available';
     const UNAVAILABLE = 'unavailable';
 
-    // Get all availability statuses
-    public static function getAvailabilityStatuses()
-    {
-        return [
-            'available' => 'موجود',
-            'coming_soon' => 'به زودی',
-            'unavailable' => 'ناموجود',
-        ];
-    }
+    //======================================================================
+    // RELATIONSHIPS
+    //======================================================================
 
-    // One-to-One relationship with Store (Product owns Store)
     public function store()
     {
         return $this->hasOne(Store::class);
     }
 
-    // Many-to-Many relationship with Categories
     public function categories()
     {
         return $this->belongsToMany(Category::class);
     }
 
-    // Many-to-Many relationship with Specialties
     public function specialties()
     {
         return $this->belongsToMany(Specialty::class);
     }
 
-    // Scopes
+    //======================================================================
+    // SCOPES
+    //======================================================================
+
     public function scopeActive(Builder $query)
     {
         return $query->where('status', true);
@@ -93,11 +92,14 @@ class Product extends Model
         return $query->where('availability_status', $status);
     }
 
-    // Accessors & Mutators
+    //======================================================================
+    // ACCESSORS & MUTATORS
+    //======================================================================
+
     public function getFinalPriceAttribute()
     {
         $finalPrice = $this->price - $this->discount;
-        return max($finalPrice, 0); // Ensure price doesn't go below 0
+        return max($finalPrice, 0);
     }
 
     public function getDiscountAmountAttribute()
@@ -128,7 +130,19 @@ class Product extends Model
         return $this->status ? 'Active' : 'Inactive';
     }
 
-    // Helper Methods
+    //======================================================================
+    // HELPER METHODS
+    //======================================================================
+
+    public static function getAvailabilityStatuses()
+    {
+        return [
+            'available' => 'موجود',
+            'coming_soon' => 'به زودی',
+            'unavailable' => 'ناموجود',
+        ];
+    }
+
     public function isComingSoon()
     {
         return $this->availability_status === self::COMING_SOON;
@@ -153,6 +167,10 @@ class Product extends Model
     {
         $this->update(['status' => false]);
     }
+
+    //======================================================================
+    // FACTORY
+    //======================================================================
 
     protected static function newFactory()
     {

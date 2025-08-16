@@ -5,24 +5,17 @@ namespace Modules\Product\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class AttributeItemRequest extends FormRequest
+class AttributeItemUpdateRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return true; // Adjust this if you add authorization logic later
+        return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
-        // Getting the attribute and item route parameters
         $attribute = $this->route('attribute');
-        $item = $this->route('item'); // null if creating new
+        $item = $this->route('item');
 
         return [
             'value' => [
@@ -31,24 +24,16 @@ class AttributeItemRequest extends FormRequest
                 'max:255',
                 Rule::unique('attribute_items')
                     ->where('attribute_id', $attribute->id)
-                    ->ignore($item?->id),
+                    ->ignore($item->id),
             ],
         ];
     }
 
-    /**
-     * Custom attribute names for validation errors.
-     */
     public function attributes(): array
     {
-        return [
-            'value' => 'مقدار',
-        ];
+        return ['value' => 'مقدار'];
     }
 
-    /**
-     * Custom error messages.
-     */
     public function messages(): array
     {
         return [

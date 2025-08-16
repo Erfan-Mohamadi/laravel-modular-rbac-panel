@@ -10,6 +10,10 @@ class Brand extends Model
 {
     use HasFactory;
 
+    //======================================================================
+    // MODEL CONFIGURATION
+    //======================================================================
+
     protected $fillable = [
         'name',
         'status',
@@ -21,6 +25,10 @@ class Brand extends Model
         'status' => 'boolean'
     ];
 
+    //======================================================================
+    // RELATIONSHIPS
+    //======================================================================
+
     /**
      * Many-to-many relationship with categories
      */
@@ -29,6 +37,10 @@ class Brand extends Model
         return $this->belongsToMany(Category::class, 'brand_category');
     }
 
+    //======================================================================
+    // SCOPES
+    //======================================================================
+
     /**
      * Scope for active brands
      */
@@ -36,6 +48,10 @@ class Brand extends Model
     {
         return $query->where('status', true);
     }
+
+    //======================================================================
+    // ACCESSORS
+    //======================================================================
 
     /**
      * Get the brand's image URL

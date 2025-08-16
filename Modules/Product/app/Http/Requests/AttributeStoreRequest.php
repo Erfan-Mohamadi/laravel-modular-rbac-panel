@@ -5,30 +5,22 @@ namespace Modules\Product\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class AttributeRequest extends FormRequest
+class AttributeStoreRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return true; // Handle authorization via middleware/policies
+        return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
-        $attributeId = $this->route('attribute')?->id;
-
         return [
             'name' => [
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[a-z0-9_]+$/', // Only lowercase letters, numbers, and underscores
-                Rule::unique('attributes')->ignore($attributeId),
+                'regex:/^[a-z0-9_]+$/',
+                Rule::unique('attributes'),
             ],
             'label' => [
                 'required',
@@ -42,7 +34,6 @@ class AttributeRequest extends FormRequest
             'status' => [
                 'boolean',
             ],
-            // Attribute items validation (for select type)
             'items' => [
                 'required_if:type,select',
                 'string',
@@ -50,9 +41,6 @@ class AttributeRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom attributes for validator errors.
-     */
     public function attributes(): array
     {
         return [
@@ -64,9 +52,6 @@ class AttributeRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom messages for validator errors.
-     */
     public function messages(): array
     {
         return [
@@ -80,14 +65,11 @@ class AttributeRequest extends FormRequest
         ];
     }
 
-    /**
-     * Prepare the data for validation.
-     */
     protected function prepareForValidation(): void
     {
         $this->merge([
             'name' => strtolower(str_replace([' ', '-'], '_', $this->name)),
-            'status' => $this->boolean('status', true), // Default to true if not provided
+            'status' => $this->boolean('status', true),
         ]);
     }
 }

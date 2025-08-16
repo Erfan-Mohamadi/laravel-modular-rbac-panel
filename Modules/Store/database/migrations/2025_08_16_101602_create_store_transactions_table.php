@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('store_id')->constrained('stores')->onDelete('cascade');
             $table->enum('type', ['increment', 'decrement']);
-            $table->integer('count')->default(0);
+            $table->unsignedInteger('count')->default(0);
 
             $table->timestamps();
             $table->text('description')->nullable();

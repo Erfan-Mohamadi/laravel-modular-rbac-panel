@@ -12,8 +12,8 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->integer('price');
-            $table->integer('discount')->default(0)->nullable();
+            $table->unsignedBigInteger('price');
+            $table->unsignedTinyInteger('discount')->default(0)->nullable();
             $table->enum('availability_status', ['coming_soon', 'available', 'unavailable'])->default('available');
             $table->boolean('status')->default(true); // active/inactive
             $table->text('description')->nullable();

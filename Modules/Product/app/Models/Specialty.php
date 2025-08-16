@@ -1,5 +1,4 @@
 <?php
-// Modules/Product/Models/Specialty.php
 
 namespace Modules\Product\Models;
 
@@ -11,6 +10,10 @@ class Specialty extends Model
 {
     use HasFactory;
 
+    //======================================================================
+    // MODEL CONFIGURATION
+    //======================================================================
+
     protected $fillable = [
         'name',
         'type',
@@ -21,47 +24,77 @@ class Specialty extends Model
         'status' => 'boolean',
     ];
 
-    // Relationship with specialty items (for select type)
+    //======================================================================
+    // RELATIONSHIPS
+    //======================================================================
+
+    /**
+     * Relationship with specialty items (for select type)
+     */
     public function items()
     {
         return $this->hasMany(SpecialtyItem::class);
     }
 
-    // Relationship with categories (many-to-many)
+    /**
+     * Relationship with categories (many-to-many)
+     */
     public function categories()
     {
         return $this->belongsToMany(Category::class);
     }
 
-    // Scope to get only active specialties
+    //======================================================================
+    // SCOPES
+    //======================================================================
+
+    /**
+     * Scope to get only active specialties
+     */
     public function scopeActive($query)
     {
         return $query->where('status', true);
     }
 
-    // Scope to get only text type
+    /**
+     * Scope to get only text type
+     */
     public function scopeTextType($query)
     {
         return $query->where('type', 'text');
     }
 
-    // Scope to get only select type
+    /**
+     * Scope to get only select type
+     */
     public function scopeSelectType($query)
     {
         return $query->where('type', 'select');
     }
 
-    // Check if specialty is select type
+    //======================================================================
+    // HELPER METHODS
+    //======================================================================
+
+    /**
+     * Check if specialty is select type
+     */
     public function isSelectType()
     {
         return $this->type === 'select';
     }
 
-    // Check if specialty is text type
+    /**
+     * Check if specialty is text type
+     */
     public function isTextType()
     {
         return $this->type === 'text';
     }
+
+    //======================================================================
+    // FACTORY
+    //======================================================================
 
     protected static function newFactory()
     {

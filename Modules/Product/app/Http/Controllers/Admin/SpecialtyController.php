@@ -2,41 +2,29 @@
 
 namespace Modules\Product\Http\Controllers\Admin;
 
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Modules\Product\Http\Requests\SpecialtyStoreRequest;
+use Modules\Product\Http\Requests\SpecialtyUpdateRequest;
 use Modules\Product\Models\Specialty;
 use Modules\Product\Models\SpecialtyItem;
 use Modules\Category\Models\Category;
 
 class SpecialtyController extends Controller
 {
+    //======================================================================
+    // CRUD OPERATIONS
+    //======================================================================
+
+    /**
+     * Display paginated specialties with filtering options
+     */
     public function index(Request $request)
     {
         $query = Specialty::with(['items', 'categories']);
 
-        // Filter: search by name
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where('name', 'like', "%{$search}%");
-        }
-
-        // Filter: status
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        // Filter: type
-        if ($request->filled('type')) {
-            $query->where('type', $request->input('type'));
-        }
-
-        // Optional: filter by category
-        if ($request->filled('category_id')) {
-            $query->whereHas('categories', function ($q) use ($request) {
-                $q->where('categories.id', $request->input('category_id'));
-            });
-        }
+        // Apply filters
+        $this->applyFilters($query, $request);
 
         $specialties = $query->orderByDesc('id')->paginate(15)->withQueryString();
         $categories = Category::all();
@@ -44,52 +32,45 @@ class SpecialtyController extends Controller
         return view('product::admin.specialty.index', compact('specialties', 'categories'));
     }
 
+    /**
+     * Show specialty creation form
+     */
     public function create()
     {
         $categories = Category::all();
         return view('product::admin.specialty.create', compact('categories'));
     }
 
-    public function store(Request $request)
+    /**
+     * Store new specialty with categories and items
+     */
+    public function store(SpecialtyStoreRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|in:text,select',
-            'status' => 'boolean',
-            'categories' => 'array',
-            'categories.*' => 'exists:categories,id',
-            'items' => 'required_if:type,select|array',
-            'items.*' => 'required|string|max:255',
-        ]);
-
         $specialty = Specialty::create([
             'name' => $request->name,
             'type' => $request->type,
             'status' => $request->status ?? true,
         ]);
 
-        // Attach categories
-        if ($request->has('categories')) {
-            $specialty->categories()->attach($request->categories);
-        }
-
-        // Create items if type is select
-        if ($request->type === 'select' && $request->has('items')) {
-            foreach ($request->items as $item) {
-                $specialty->items()->create(['value' => $item]);
-            }
-        }
+        $this->syncCategories($specialty, $request);
+        $this->handleSpecialtyItems($specialty, $request);
 
         return redirect()->route('specialties.index')
-            ->with('success', 'ویژگی‌ یا موفقیت ثبت شد');
+            ->with('success', 'ویژگی با موفقیت ثبت شد');
     }
 
+    /**
+     * Display specialty details
+     */
     public function show(Specialty $specialty)
     {
         $specialty->load(['items', 'categories']);
         return view('product::admin.specialty.show', compact('specialty'));
     }
 
+    /**
+     * Show specialty edit form
+     */
     public function edit(Specialty $specialty)
     {
         $specialty->load(['items', 'categories']);
@@ -97,59 +78,41 @@ class SpecialtyController extends Controller
         return view('product::admin.specialty.edit', compact('specialty', 'categories'));
     }
 
-    public function update(Request $request, Specialty $specialty)
+    /**
+     * Update specialty with categories and items
+     */
+    public function update(SpecialtyUpdateRequest $request, Specialty $specialty)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|in:text,select',
-            'status' => 'boolean',
-            'categories' => 'array',
-            'categories.*' => 'exists:categories,id',
-            'items' => 'required_if:type,select|array',
-            'items.*' => 'required|string|max:255',
-        ]);
-
         $specialty->update([
             'name' => $request->name,
             'type' => $request->type,
             'status' => $request->status ?? true,
         ]);
 
-        // Sync categories
-        if ($request->has('categories')) {
-            $specialty->categories()->sync($request->categories);
-        } else {
-            $specialty->categories()->detach();
-        }
-
-        // Handle items based on type
-        if ($request->type === 'select') {
-            // Delete existing items
-            $specialty->items()->delete();
-
-            // Create new items
-            if ($request->has('items')) {
-                foreach ($request->items as $item) {
-                    $specialty->items()->create(['value' => $item]);
-                }
-            }
-        } else {
-            // If changed from select to text, delete all items
-            $specialty->items()->delete();
-        }
+        $this->syncCategories($specialty, $request);
+        $this->handleSpecialtyItems($specialty, $request);
 
         return redirect()->route('specialties.index')
-            ->with('success', 'ویژگی‌ یا موفقیت ویرایش شد');
+            ->with('success', 'ویژگی با موفقیت ویرایش شد');
     }
 
+    /**
+     * Delete specialty
+     */
     public function destroy(Specialty $specialty)
     {
         $specialty->delete();
         return redirect()->route('specialties.index')
-            ->with('success', 'ویژگی‌ یا موفقیت حذف شد');
+            ->with('success', 'ویژگی با موفقیت حذف شد');
     }
 
-    // API methods for getting specialty items
+    //======================================================================
+    // API ENDPOINTS
+    //======================================================================
+
+    /**
+     * Get specialty items for API response
+     */
     public function getSpecialtyItems($specialtyId)
     {
         $specialty = Specialty::with('items')->findOrFail($specialtyId);
@@ -159,5 +122,57 @@ class SpecialtyController extends Controller
         }
 
         return response()->json(['message' => 'This specialty is text type']);
+    }
+
+    //======================================================================
+    // PRIVATE METHODS
+    //======================================================================
+
+    /**
+     * Apply filters to the query
+     */
+    private function applyFilters($query, Request $request)
+    {
+        if ($request->filled('search')) {
+            $query->where('name', 'like', "%{$request->input('search')}%");
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        if ($request->filled('category_id')) {
+            $query->whereHas('categories', function ($q) use ($request) {
+                $q->where('categories.id', $request->input('category_id'));
+            });
+        }
+    }
+
+    /**
+     * Sync specialty categories
+     */
+    private function syncCategories(Specialty $specialty, Request $request)
+    {
+        $request->filled('categories')
+            ? $specialty->categories()->sync($request->categories)
+            : $specialty->categories()->detach();
+    }
+
+    /**
+     * Handle specialty items based on type
+     */
+    private function handleSpecialtyItems(Specialty $specialty, Request $request)
+    {
+        $specialty->items()->delete();
+
+        if ($request->type === 'select' && $request->filled('items')) {
+            foreach ($request->items as $item) {
+                $specialty->items()->create(['value' => $item]);
+            }
+        }
     }
 }

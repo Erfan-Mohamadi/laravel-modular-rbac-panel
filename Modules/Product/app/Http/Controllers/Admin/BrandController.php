@@ -6,13 +6,19 @@ use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
+use Modules\Product\Http\Requests\BrandStoreRequest;
+use Modules\Product\Http\Requests\BrandUpdateRequest;
 use Modules\Product\Models\Brand;
 use Modules\Category\Models\Category;
 
 class BrandController extends Controller
 {
+    //======================================================================
+    // CRUD OPERATIONS
+    //======================================================================
+
     /**
-     * Display a listing of the resource.
+     * Display paginated list of brands with their categories
      */
     public function index()
     {
@@ -21,7 +27,7 @@ class BrandController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Show brand creation form with hierarchical categories
      */
     public function create()
     {
@@ -47,36 +53,23 @@ class BrandController extends Controller
         ]);
     }
 
-
-
     /**
-     * Store a newly created resource in storage.
+     * Store new brand with image and category associations
      */
-    public function store(Request $request)
+    public function store(BrandStoreRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:brands,name',
-            'status' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'description' => 'nullable|string',
-            'categories' => 'array',
-            'categories.*' => 'exists:categories,id'
-        ]);
-
         $data = [
             'name' => $request->name,
             'status' => $request->has('status'),
             'description' => $request->description
         ];
 
-        // Handle image upload
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('brands', 'public');
         }
 
         $brand = Brand::create($data);
 
-        // Sync categories
         if ($request->has('categories')) {
             $brand->categories()->sync($request->categories);
         }
@@ -86,7 +79,7 @@ class BrandController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Show brand details
      */
     public function show(Brand $brand)
     {
@@ -95,9 +88,8 @@ class BrandController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show brand edit form with hierarchical categories
      */
-
     public function edit(Brand $brand)
     {
         $categories = Category::with('children')->get();
@@ -113,35 +105,23 @@ class BrandController extends Controller
             }
         };
 
-        $addCategories($categories->where('parent_id', null)); // only root categories to start
+        $addCategories($categories->where('parent_id', null));
 
         return view('product::admin.brand.edit', compact('brand', 'flatCategories'));
     }
 
-
     /**
-     * Update the specified resource in storage.
+     * Update brand including image and categories
      */
-    public function update(Request $request, Brand $brand)
+    public function update(BrandUpdateRequest $request, Brand $brand)
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:brands,name,' . $brand->id,
-            'status' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'description' => 'nullable|string',
-            'categories' => 'array',
-            'categories.*' => 'exists:categories,id'
-        ]);
-
         $data = [
             'name' => $request->name,
             'status' => $request->has('status'),
             'description' => $request->description
         ];
 
-        // Handle image upload
         if ($request->hasFile('image')) {
-            // Delete old image
             if ($brand->image) {
                 Storage::disk('public')->delete($brand->image);
             }
@@ -150,7 +130,6 @@ class BrandController extends Controller
 
         $brand->update($data);
 
-        // Sync categories
         if ($request->has('categories')) {
             $brand->categories()->sync($request->categories);
         }
@@ -160,18 +139,15 @@ class BrandController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Delete brand with associated image and category relations
      */
     public function destroy(Brand $brand)
     {
-        // Delete image if exists
         if ($brand->image) {
             Storage::disk('public')->delete($brand->image);
         }
 
-        // Detach categories
         $brand->categories()->detach();
-
         $brand->delete();
 
         return redirect()->route('brands.index')

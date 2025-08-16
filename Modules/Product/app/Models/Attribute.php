@@ -4,11 +4,14 @@ namespace Modules\Product\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Modules\Product\Models\AttributeItem;
 
 class Attribute extends Model
 {
     use HasFactory;
+
+    //======================================================================
+    // MODEL CONFIGURATION
+    //======================================================================
 
     protected $fillable = [
         'name',
@@ -21,8 +24,12 @@ class Attribute extends Model
         'status' => 'boolean',
     ];
 
+    //======================================================================
+    // SCOPES
+    //======================================================================
+
     /**
-     * Scope for active attributes
+     * Scope a query to only include active attributes
      */
     public function scopeActive($query)
     {
@@ -30,7 +37,7 @@ class Attribute extends Model
     }
 
     /**
-     * Scope for text type attributes
+     * Scope a query to only include text type attributes
      */
     public function scopeTextType($query)
     {
@@ -38,15 +45,19 @@ class Attribute extends Model
     }
 
     /**
-     * Scope for select type attributes
+     * Scope a query to only include select type attributes
      */
     public function scopeSelectType($query)
     {
         return $query->where('type', 'select');
     }
 
+    //======================================================================
+    // RELATIONSHIPS
+    //======================================================================
+
     /**
-     * Get attribute items for select type attributes
+     * Get all attribute items for this attribute
      */
     public function attributeItems()
     {
@@ -54,7 +65,7 @@ class Attribute extends Model
     }
 
     /**
-     * Get active attribute items
+     * Get active attribute items for this attribute
      */
     public function activeItems()
     {
@@ -62,18 +73,24 @@ class Attribute extends Model
     }
 
     /**
-     * Get products that have this attribute
+     * Get products associated with this attribute
+     *
+     * @todo Implement when product_attributes pivot table is created
      */
     public function products()
     {
-        // This will be implemented when you create the product_attributes pivot
+        // Implementation pending pivot table creation
         // return $this->belongsToMany(Product::class, 'product_attributes')
-        //              ->withPivot('value')
-        //              ->withTimestamps();
+        //     ->withPivot('value')
+        //     ->withTimestamps();
     }
 
+    //======================================================================
+    // HELPER METHODS
+    //======================================================================
+
     /**
-     * Check if attribute is active
+     * Check if the attribute is active
      */
     public function isActive(): bool
     {
@@ -81,7 +98,7 @@ class Attribute extends Model
     }
 
     /**
-     * Check if attribute is text type
+     * Check if the attribute is of text type
      */
     public function isTextType(): bool
     {
@@ -89,7 +106,7 @@ class Attribute extends Model
     }
 
     /**
-     * Check if attribute is select type
+     * Check if the attribute is of select type
      */
     public function isSelectType(): bool
     {

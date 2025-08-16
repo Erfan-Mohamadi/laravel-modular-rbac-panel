@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('stores', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->integer('balance')->default(0);
+            $table->unsignedInteger('balance')->default(0);
             $table->timestamps();
 
             $table->index('product_id');
