@@ -1,5 +1,4 @@
 <?php
-// Modules/Product/database/migrations/2025_08_16_create_product_specialty_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -11,11 +10,22 @@ return new class extends Migration
     {
         Schema::create('product_specialty', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->foreignId('specialty_id')->constrained('specialties')->onDelete('cascade');
+            $table->unsignedBigInteger('product_id');
+            $table->unsignedBigInteger('specialty_id');
+            $table->unsignedInteger('special_item_id')->nullable();
+            $table->text('value')->nullable(); // Store the specialty value for this product
             $table->timestamps();
 
+            // Foreign key constraints
+            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
+            $table->foreign('specialty_id')->references('id')->on('specialties')->onDelete('cascade');
+
+            // Unique constraint to prevent duplicate product-specialty pairs
             $table->unique(['product_id', 'specialty_id']);
+
+            // Indexes for better performance
+            $table->index('product_id');
+            $table->index('specialty_id');
         });
     }
 

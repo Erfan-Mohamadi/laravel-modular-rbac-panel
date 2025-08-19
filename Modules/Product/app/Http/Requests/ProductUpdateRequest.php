@@ -26,6 +26,10 @@ class ProductUpdateRequest extends FormRequest
         // Remove initial_stock validation for update (since it's only for create)
         unset($rules['initial_stock']);
 
+        // Add validation for removing gallery images
+        $rules['remove_gallery_images'] = 'nullable|array';
+        $rules['remove_gallery_images.*'] = 'integer|exists:media,id';
+
         return $rules;
     }
 
@@ -36,12 +40,18 @@ class ProductUpdateRequest extends FormRequest
         // Remove initial_stock attribute since we removed the rule
         unset($attributes['initial_stock']);
 
+        // Add attribute for removing gallery images
+        $attributes['remove_gallery_images'] = 'تصاویر گالری برای حذف';
+
         return $attributes;
     }
 
     public function messages(): array
     {
         $messages = [...$this->storeRequest->messages()];
+
+        // Add messages for removing gallery images
+        $messages['remove_gallery_images.*.exists'] = 'تصویر انتخاب شده برای حذف معتبر نیست.';
 
         return $messages;
     }

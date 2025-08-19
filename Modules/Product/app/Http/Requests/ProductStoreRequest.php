@@ -25,6 +25,11 @@ class ProductStoreRequest extends FormRequest
             'specialties' => 'array',
             'specialties.*' => 'exists:specialties,id',
             'initial_stock' => 'nullable|integer|min:0',
+
+            // Image validation rules
+            'main_image' => 'nullable|image|mimes:jpeg,png,webp,jpg|max:2048',
+            'gallery_images' => 'nullable|array',
+            'gallery_images.*' => 'image|mimes:jpeg,png,webp,jpg|max:2048',
         ];
     }
 
@@ -40,6 +45,8 @@ class ProductStoreRequest extends FormRequest
             'categories' => 'دسته‌بندی‌ها',
             'specialties' => 'تخصص‌ها',
             'initial_stock' => 'موجودی اولیه',
+            'main_image' => 'تصویر اصلی',
+            'gallery_images' => 'تصاویر گالری',
         ];
     }
 
@@ -53,6 +60,14 @@ class ProductStoreRequest extends FormRequest
             'discount.lt' => 'تخفیف نمی‌تواند بیشتر یا مساوی قیمت باشد.',
             'categories.*.exists' => 'دسته‌بندی انتخاب شده معتبر نیست.',
             'specialties.*.exists' => 'تخصص انتخاب شده معتبر نیست.',
+
+            // Image validation messages
+            'main_image.image' => 'تصویر اصلی باید یک فایل تصویری باشد.',
+            'main_image.mimes' => 'فرمت تصویر اصلی باید jpeg، png، webp یا jpg باشد.',
+            'main_image.max' => 'حجم تصویر اصلی نمی‌تواند بیشتر از 2 مگابایت باشد.',
+            'gallery_images.*.image' => 'تمام فایل‌های گالری باید تصویر باشند.',
+            'gallery_images.*.mimes' => 'فرمت تصاویر گالری باید jpeg، png، webp یا jpg باشد.',
+            'gallery_images.*.max' => 'حجم هر تصویر گالری نمی‌تواند بیشتر از 2 مگابایت باشد.',
         ];
     }
 }

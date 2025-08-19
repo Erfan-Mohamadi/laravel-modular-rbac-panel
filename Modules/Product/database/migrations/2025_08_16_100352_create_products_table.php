@@ -12,14 +12,28 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->unsignedBigInteger('price');
+            $table->unsignedBigInteger('price'); // Using integer for price in cents/minor units
             $table->unsignedTinyInteger('discount')->default(0)->nullable();
             $table->enum('availability_status', ['coming_soon', 'available', 'unavailable'])->default('available');
             $table->boolean('status')->default(true); // active/inactive
             $table->text('description')->nullable();
+
+            // Foreign key columns
+            $table->unsignedBigInteger('brand_id')->nullable();
+            $table->unsignedBigInteger('category_id')->nullable();
+
             $table->timestamps();
 
+            // Foreign key constraints
+            $table->foreign('brand_id')->references('id')->on('brands')->onDelete('set null');
+            $table->foreign('category_id')->references('id')->on('categories')->onDelete('set null');
+
+            // Indexes for better query performance
             $table->index(['status', 'availability_status']);
+            $table->index('title');
+            $table->index('brand_id');
+            $table->index('category_id');
+            $table->index('price');
         });
     }
 
