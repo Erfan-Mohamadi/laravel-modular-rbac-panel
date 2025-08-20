@@ -33,4 +33,10 @@ Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
         ->name('products.toggle-status');
     Route::patch('products/{product}/change-availability', [ProductController::class, 'changeAvailabilityStatus'])
         ->name('products.change-availability');
+
+    Route::get('/admin/products/specialties-by-category', [ProductController::class, 'getSpecialtiesByCategory'])
+        ->name('products.specialties.byCategory');
+
+    Route::get('/brands-by-category', [ProductController::class, 'brandsByCategory'])->name('brands.byCategory');
+
 });

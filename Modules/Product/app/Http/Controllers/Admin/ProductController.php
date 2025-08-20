@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Product\Http\Requests\ProductStoreRequest;
 use Modules\Product\Http\Requests\ProductUpdateRequest;
+use Modules\Product\Models\Brand;
 use Modules\Product\Models\Product;
 use Modules\Category\Models\Category;
 use Modules\Product\Models\Specialty;
@@ -22,7 +23,7 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with(['categories', 'specialties', 'store', 'media'])
+        $products = Product::with(['category', 'store', 'media'])
             ->latest()
             ->paginate(15);
 
@@ -36,6 +37,11 @@ class ProductController extends Controller
         return view('product::admin.product.index', compact('products'));
     }
 
+
+
+    /**
+     * Show product creation form with required data
+     */
     /**
      * Show product creation form with required data
      */
@@ -54,7 +60,8 @@ class ProductController extends Controller
             ->groupBy('category_id')
             ->map(function ($items) {
                 return $items->pluck('specialty_id')->toArray();
-            });
+            })
+            ->toArray(); // Convert to array for JavaScript
 
         // Get availability statuses
         $availabilityStatuses = Product::getAvailabilityStatuses();
@@ -73,98 +80,237 @@ class ProductController extends Controller
     /**
      * Store new product with relationships, images, and initial stock
      */
+    /**
+     * Store new product with relationships, images, and initial stock
+     */
     public function store(ProductStoreRequest $request)
     {
+        // 1️⃣ Validate request
         $data = $request->validated();
         $data['status'] = $request->boolean('status', true);
         $data['discount'] = $data['discount'] ?? 0;
 
+        // 2️⃣ Create product
         $product = Product::create($data);
 
-        // Handle relationships
-        if ($request->filled('categories')) {
-            $product->categories()->attach($request->categories);
-        }
-
+        // 3️⃣ Handle specialty relationships with pivot data
         if ($request->filled('specialties')) {
-            $product->specialties()->attach($request->specialties);
+            $specialtyData = [];
+
+            foreach ($request->specialties as $specialtyId) {
+                $specialty = Specialty::find($specialtyId);
+
+                if ($specialty) {
+                    if ($specialty->isTextType()) {
+                        $customValue = $request->input("specialty_values.{$specialtyId}");
+                        $specialtyData[$specialtyId] = [
+                            'value' => $customValue,
+                            'specialty_item_id' => null
+                        ];
+                    } elseif ($specialty->isSelectType()) {
+                        $selectedItemIds = $request->input("specialty_items.{$specialtyId}", []);
+                        if (!is_array($selectedItemIds)) {
+                            $selectedItemIds = [$selectedItemIds];
+                        }
+                        foreach ($selectedItemIds as $itemId) {
+                            $specialtyData[$specialtyId] = [
+                                'value' => null,
+                                'specialty_item_id' => $itemId
+                            ];
+                        }
+                    } else {
+                        $specialtyData[$specialtyId] = [
+                            'value' => null,
+                            'specialty_item_id' => null
+                        ];
+                    }
+                }
+            }
+
+            if (!empty($specialtyData)) {
+                $product->specialties()->attach($specialtyData);
+            }
         }
 
-        // Handle image uploads
+        // 4️⃣ Handle image uploads
         $this->handleImageUploads($request, $product);
 
-        // Handle initial stock
+        // 5️⃣ Handle initial stock
         $this->handleInitialStock($request, $product);
+
+        // 6️⃣ Handle brands if using AJAX
+        if ($request->filled('brands')) {
+            $product->brands()->sync($request->brands);
+        }
 
         return redirect()->route('products.index')
             ->with('success', 'محصول با موفقیت ثبت شد');
     }
+
+
+
 
     /**
      * Display product details
      */
     public function show(Product $product)
     {
-        $product->load(['categories', 'specialties', 'store', 'media']);
+        // Load relationships
+        $product->load(['category', 'brands', 'specialties.items', 'store', 'media']);
 
-        return view('product::admin.product.show', compact('product'));
+        // Prepare specialty values
+        $specialtyValues = [];
+        foreach ($product->specialties as $specialty) {
+            $pivot = $specialty->pivot;
+            if ($specialty->isTextType()) {
+                $specialtyValues[$specialty->id] = $pivot->value;
+            } elseif ($specialty->isSelectType() && $pivot->specialty_item_id) {
+                $item = $specialty->items->where('id', $pivot->specialty_item_id)->first();
+                $specialtyValues[$specialty->id] = $item ? $item->value : null;
+            } else {
+                $specialtyValues[$specialty->id] = null;
+            }
+        }
+
+        // Prepare gallery images array for Blade
+        $galleryImages = $product->getMedia('gallery')->map(function ($media) {
+            return [
+                'id' => $media->id,
+                'original' => $media->getUrl(),
+                'thumb' => $media->getUrl('thumb'),
+            ];
+        })->toArray(); // ✅ convert to array
+
+
+        return view('product::admin.product.show', compact('product', 'specialtyValues', 'galleryImages'));
     }
+
+
 
     /**
      * Show product edit form with required data
      */
     public function edit(Product $product)
     {
-        $product->load(['categories', 'specialties', 'media']);
+        // Load all necessary relationships
+        $product->load(['specialties.items', 'brands', 'media']);
 
-        $categories = Category::pluck('name', 'id');
-        $specialties = Specialty::active()->pluck('name', 'id');
+        $categories = Category::all();
+        $specialties = Specialty::with('items')->get();
         $availabilityStatuses = Product::getAvailabilityStatuses();
+        $brands = Brand::all();
+
+        // Prepare specialty values for form population
+        $specialtyValues = [];
+        foreach ($product->specialties as $specialty) {
+            if ($specialty->type === 'text') {
+                $specialtyValues[$specialty->id] = $specialty->pivot->value;
+            } elseif ($specialty->type === 'select') {
+                // Handle multiple selected items for select type specialties
+                $specialtyValues[$specialty->id] = $specialty->pivot->specialty_item_id
+                    ? [$specialty->pivot->specialty_item_id]
+                    : [];
+            }
+        }
+
+        // ✅ fetch gallery images
+        $galleryImages = $product->getMedia('gallery');
 
         return view('product::admin.product.edit', compact(
             'product',
             'categories',
             'specialties',
-            'availabilityStatuses'
+            'availabilityStatuses',
+            'brands',
+            'specialtyValues',
+            'galleryImages'
         ));
     }
+
+
 
     /**
      * Update product and sync relationships
      */
+    /**
+     * Update product and sync relationships
+     */
+// Update product
     public function update(ProductUpdateRequest $request, Product $product)
     {
-        $data = $request->validated();
-        $data['status'] = $request->boolean('status', true);
-        $data['discount'] = $data['discount'] ?? 0;
+        // Update product fields
+        $product->update([
+            'title' => $request->title,
+            'description' => $request->description,
+            'price' => $request->price,
+            'discount' => $request->discount,
+            'availability' => $request->availability,
+            'category_id' => $request->category_id,
+        ]);
 
-        $product->update($data);
+        // Handle main image
+        if ($request->has('remove_main_image')) {
+            $product->clearMediaCollection('main');
+        }
+        if ($request->hasFile('main_image')) {
+            $product->clearMediaCollection('main');
+            $product->addMediaFromRequest('main_image')->toMediaCollection('main');
+        }
 
-        // Handle relationships
-        $request->filled('categories')
-            ? $product->categories()->sync($request->categories)
-            : $product->categories()->detach();
+        // Handle gallery images
+        if ($request->has('remove_gallery_images')) {
+            foreach ($request->remove_gallery_images as $mediaId) {
+                $media = $product->media()->find($mediaId);
+                if ($media) {
+                    $media->delete();
+                }
+            }
+        }
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $image) {
+                $product->addMediaFromRequest($image)->toMediaCollection('gallery');
+            }
+        }
 
-        $request->filled('specialties')
-            ? $product->specialties()->sync($request->specialties)
-            : $product->specialties()->detach();
+        // Sync specialties and brands (same as before)
+        // ... rest of your specialty and brand syncing code
 
-        // Handle image uploads
-        $this->handleImageUploads($request, $product, true);
-
-        return redirect()->route('products.index')
-            ->with('success', 'محصول با موفقیت ویرایش شد');
+        return redirect()
+            ->route('products.index')
+            ->with('success', 'محصول با موفقیت ویرایش شد.');
     }
+
 
     /**
      * Delete product
      */
     public function destroy(Product $product)
     {
+        // 1️⃣ Detach specialties
+        $product->specialties()->detach();
+
+        // 2️⃣ Detach brands (if any)
+        if (method_exists($product, 'brands')) {
+            $product->brands()->detach();
+        }
+
+        // 3️⃣ Delete media (main image + gallery)
+        $product->clearMediaCollection('main_image');
+        $product->clearMediaCollection('gallery');
+
+        // 4️⃣ Delete store and transactions
+        if ($product->store) {
+            $product->store->transactions()->delete();
+            $product->store->delete();
+        }
+
+        // 5️⃣ Delete the product itself
         $product->delete();
+
         return redirect()->route('products.index')
             ->with('success', 'محصول با موفقیت حذف شد');
     }
+
 
     //======================================================================
     // STATUS MANAGEMENT
@@ -318,22 +464,57 @@ class ProductController extends Controller
         }
     }
 
-    public function getSpecialtiesByCategories(Request $request)
+    public function getSpecialtiesByCategory(Request $request)
     {
-        $categoryIds = $request->input('categories', []);
+        $categoryId = $request->input('category_id');
 
-        if (empty($categoryIds)) {
+        if (!$categoryId) {
             return response()->json([]);
         }
 
-        $specialties = Specialty::whereHas('categories', function ($q) use ($categoryIds) {
-            $q->whereIn('categories.id', $categoryIds);
+        $specialties = Specialty::whereHas('categories', function ($q) use ($categoryId) {
+            $q->where('categories.id', $categoryId);
         })
-            ->where('status', true) // optional: only active specialties
-            ->get(['id', 'name']);
+            ->active()
+            ->with(['items' => function($query) {
+                $query->select('id', 'specialty_id', 'value');
+            }])
+            ->get(['id', 'name', 'type']);
 
-        return response()->json($specialties);
+        // Transform the data to include type information and items
+        $transformedSpecialties = $specialties->map(function ($specialty) {
+            return [
+                'id' => $specialty->id,
+                'name' => $specialty->name,
+                'type' => $specialty->type,
+                'type_label' => $specialty->getTypeLabelAttribute(),
+                'items' => $specialty->items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'value' => $item->value
+                    ];
+                })
+            ];
+        });
+
+        return response()->json($transformedSpecialties);
     }
+
+    public function brandsByCategory(Request $request)
+    {
+        $categoryId = $request->query('category_id');
+
+        if (!$categoryId) {
+            return response()->json([]);
+        }
+
+        $brands = Brand::whereHas('categories', function($q) use ($categoryId) {
+            $q->where('categories.id', $categoryId);
+        })->get(['id', 'name']);
+
+        return response()->json($brands);
+    }
+
 
 
 }

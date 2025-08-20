@@ -110,7 +110,7 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('specialties.index') }}">
                                 <i class="nav-icon bi bi-stars"></i>
-                                <p>تخصص‌ها</p>
+                                <p>مشخصات</p>
                             </a>
                         </li>
                         {{-- ✅ New Products menu item --}}

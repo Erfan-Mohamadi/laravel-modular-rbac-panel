@@ -10,22 +10,25 @@ return new class extends Migration
     {
         Schema::create('product_specialty', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('product_id');
-            $table->unsignedBigInteger('specialty_id');
-            $table->unsignedInteger('special_item_id')->nullable();
-            $table->text('value')->nullable(); // Store the specialty value for this product
+
+            // Foreign keys without cascade
+            $table->foreignId('product_id')->constrained('products')->onDelete('restrict');
+            $table->foreignId('specialty_id')->constrained('specialties')->onDelete('restrict');
+
+            // Optional specialty item
+            $table->foreignId('specialty_item_id')->nullable()->constrained('specialty_items')->onDelete('set null');
+
+            // Store value for text specialties
+            $table->text('value')->nullable();
+
             $table->timestamps();
 
-            // Foreign key constraints
-            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
-            $table->foreign('specialty_id')->references('id')->on('specialties')->onDelete('cascade');
-
-            // Unique constraint to prevent duplicate product-specialty pairs
+            // Unique combination
             $table->unique(['product_id', 'specialty_id']);
 
-            // Indexes for better performance
-            $table->index('product_id');
-            $table->index('specialty_id');
+            // Indexes for performance
+            $table->index(['product_id', 'specialty_id']);
+            $table->index('specialty_item_id');
         });
     }
 

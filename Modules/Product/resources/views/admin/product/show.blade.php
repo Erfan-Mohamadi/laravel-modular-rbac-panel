@@ -6,86 +6,117 @@
     <li class="breadcrumb-item">
         <a href="{{ route('products.index') }}">مدیریت محصولات</a>
     </li>
-    <li class="breadcrumb-item active">{{ $product->title }}</li>
+    <li class="breadcrumb-item active">نمایش محصول</li>
 @endsection
 
 @section('content')
     <div class="row">
         <div class="col-md-10 offset-md-1">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title">جزئیات محصول: {{ $product->title }}</h3>
-                    <a href="{{ route('products.edit', $product) }}" class="btn btn-sm btn-warning">
-                        <i class="bi bi-pencil-fill"></i> ویرایش
-                    </a>
+                <div class="card-header">
+                    <h3 class="card-title">{{ $product->title }}</h3>
                 </div>
-
                 <div class="card-body">
-                    <!-- Product Info -->
-                    <div class="mb-3">
-                        <strong>عنوان:</strong>
-                        <p>{{ $product->title }}</p>
-                    </div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>قیمت:</strong>
-                            <p>{{ number_format($product->price) }} تومان</p>
+                    <!-- Main Image -->
+                    @if($product->getMainImageUrl())
+                        <div class="mb-3 text-center">
+                            <img src="{{ $product->getMainImageUrl() }}" alt="{{ $product->title }}" class="img-fluid" style="max-height: 300px;">
                         </div>
-                        <div class="col-md-6">
-                            <strong>تخفیف:</strong>
-                            <p>{{ number_format($product->discount) }} تومان</p>
-                        </div>
-                    </div>
+                    @endif
 
-                    <div class="mb-3">
-                        <strong>وضعیت موجودی:</strong>
-                        <p>{{ $product->availability_status_label ?? $product->availability_status }}</p>
-                    </div>
 
-                    <div class="mb-3">
-                        <strong>تعداد اولیه / موجودی فعلی:</strong>
-                        <p>{{ $product->store->balance ?? 0 }}</p>
-                    </div>
-
-                    @if($product->categories->count() > 0)
+                    <!-- Gallery Images -->
+                    @if($product->getMedia('gallery')->isNotEmpty())
                         <div class="mb-3">
-                            <strong>دسته‌بندی‌ها:</strong>
-                            <p>
-                                @foreach($product->categories as $category)
-                                    <span class="badge bg-primary">{{ $category->name }}</span>
+                            <h5>گالری تصاویر</h5>
+                            <div class="gallery d-flex flex-wrap gap-2">
+                                @foreach($product->getMedia('gallery') as $media)
+                                    <a href="{{ $media->getUrl() }}" target="_blank">
+                                        <img src="{{ $media->getUrl() }}" alt="Gallery Image" class="img-thumbnail" style="max-height: 120px;">
+                                    </a>
                                 @endforeach
-                            </p>
+                            </div>
                         </div>
                     @endif
 
-                    @if($product->specialties->count() > 0)
-                        <div class="mb-3">
-                            <strong>تخصص‌ها:</strong>
-                            <p>
-                                @foreach($product->specialties as $specialty)
-                                    <span class="badge bg-success">{{ $specialty->name }}</span>
-                                @endforeach
-                            </p>
-                        </div>
-                    @endif
+                    <!-- Product Details -->
+                    <table class="table table-bordered">
+                        <tbody>
+                        <tr>
+                            <th>عنوان محصول</th>
+                            <td>{{ $product->title }}</td>
+                        </tr>
+                        <tr>
+                            <th>دسته‌بندی</th>
+                            <td>{{ $product->category?->name ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>قیمت</th>
+                            <td>{{ number_format($product->price) }} تومان</td>
+                        </tr>
+                        <tr>
+                            <th>تخفیف</th>
+                            <td>{{ number_format($product->discount) }} تومان</td>
+                        </tr>
+                        <tr>
+                            <th>قیمت نهایی</th>
+                            <td>{{ number_format(max($product->price - $product->discount,0)) }} تومان</td>
+                        </tr>
+                        <tr>
+                            <th>وضعیت موجودی</th>
+                            <td>{{ \Modules\Product\Models\Product::getAvailabilityStatuses()[$product->availability_status] ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>موجودی</th>
+                            <td>{{ $product->store?->balance ?? 0 }}</td>
+                        </tr>
+                        <tr>
+                            <th>وضعیت</th>
+                            <td>{{ $product->status ? 'فعال' : 'غیرفعال' }}</td>
+                        </tr>
+                        <tr>
+                            <th>توضیحات</th>
+                            <td>{!! nl2br(e($product->description)) !!}</td>
+                        </tr>
+                        <tr>
+                            <th>تخصص‌ها</th>
+                            <td>
+                                @if($product->specialties->count() > 0)
+                                    <ul class="list-unstyled mb-0">
+                                        @foreach($product->specialties as $specialty)
+                                            <li>
+                                                <strong>{{ $specialty->name }} : </strong>
+                                                @if($specialty->pivot->specialty_item_id)
+                                                    {{ $specialty->items()->find($specialty->pivot->specialty_item_id)?->value ?? '-' }}
+                                                @else
+                                                    {{ $specialty->pivot->value ?? '-' }}
+                                                @endif
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>برندها</th>
+                            <td>
+                                @if($product->brands->count() > 0)
+                                    {{ $product->brands->pluck('name')->join(', ') }}
+                                @else
+                                    -
+                                @endif
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
 
-                    @if($product->description)
-                        <div class="mb-3">
-                            <strong>توضیحات:</strong>
-                            <p>{{ $product->description }}</p>
-                        </div>
-                    @endif
-
-                    <div class="mb-3">
-                        <strong>وضعیت فعال/غیرفعال:</strong>
-                        <p>{{ $product->status ? 'فعال' : 'غیرفعال' }}</p>
-                    </div>
                 </div>
-
                 <div class="card-footer">
                     <a href="{{ route('products.index') }}" class="btn btn-secondary">
-                        بازگشت
+                        <i class="fas fa-arrow-left"></i> بازگشت
                     </a>
                 </div>
             </div>

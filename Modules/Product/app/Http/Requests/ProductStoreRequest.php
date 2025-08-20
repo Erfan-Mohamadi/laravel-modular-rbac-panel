@@ -20,10 +20,17 @@ class ProductStoreRequest extends FormRequest
             'availability_status' => 'required|in:coming_soon,available,unavailable',
             'status' => 'boolean',
             'description' => 'nullable|string',
-            'categories' => 'array',
-            'categories.*' => 'exists:categories,id',
-            'specialties' => 'array',
+            'category_id' => 'nullable|exists:categories,id', // single category
+
+            // Dynamic specialties
+            'specialties' => 'nullable|array',
             'specialties.*' => 'exists:specialties,id',
+            'specialty_values' => 'nullable|array',
+            'specialty_values.*' => 'nullable|string|max:255',
+            'specialty_items' => 'nullable|array',
+            'specialty_items.*' => 'nullable|array',
+            'specialty_items.*.*' => 'exists:specialty_items,id',
+
             'initial_stock' => 'nullable|integer|min:0',
 
             // Image validation rules
@@ -32,6 +39,7 @@ class ProductStoreRequest extends FormRequest
             'gallery_images.*' => 'image|mimes:jpeg,png,webp,jpg|max:2048',
         ];
     }
+
 
     public function attributes(): array
     {
@@ -42,13 +50,16 @@ class ProductStoreRequest extends FormRequest
             'availability_status' => 'وضعیت موجودی',
             'status' => 'وضعیت فعال',
             'description' => 'توضیحات',
-            'categories' => 'دسته‌بندی‌ها',
-            'specialties' => 'تخصص‌ها',
+            'category_id' => 'دسته‌بندی',
+            'specialties' => 'مشخصات',
+            'specialty_values.*' => 'مقدار مشخصات',
+            'specialty_items.*.*' => 'گزینه مشخصات',
             'initial_stock' => 'موجودی اولیه',
             'main_image' => 'تصویر اصلی',
             'gallery_images' => 'تصاویر گالری',
         ];
     }
+
 
     public function messages(): array
     {

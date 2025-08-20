@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Category\Models\Category;
 use Modules\Product\Models\Brand;
 use Modules\Product\Models\Specialty;
+use Modules\Product\Models\SpecialtyItem;
 use Modules\Store\Models\Store;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -75,10 +77,11 @@ class Product extends Model implements HasMedia
     /**
      * Product belongs to one brand
      */
-    public function brand(): BelongsTo
+    public function brands()
     {
-        return $this->belongsTo(Brand::class);
+        return $this->belongsToMany(Brand::class, 'brand_product', 'product_id', 'brand_id');
     }
+
 
     /**
      * Product belongs to one category
@@ -89,13 +92,21 @@ class Product extends Model implements HasMedia
     }
 
     /**
-     * Product has many specialties (with pivot value)
+     * Product has many specialties (with enhanced pivot including specialty_item_id)
      */
     public function specialties(): BelongsToMany
     {
         return $this->belongsToMany(Specialty::class, 'product_specialty')
-            ->withPivot('value')
+            ->withPivot(['value', 'specialty_item_id'])
             ->withTimestamps();
+    }
+
+    /**
+     * Direct relationship to product specialty pivot records
+     */
+    public function productSpecialties(): HasMany
+    {
+        return $this->hasMany(ProductSpecialty::class);
     }
 
     /**
@@ -170,40 +181,208 @@ class Product extends Model implements HasMedia
         return $this->getMedia('gallery')->count();
     }
 
+
+
     //======================================================================
-    // SPECIALTIES HELPERS
+    // ENHANCED SPECIALTIES HELPERS
     //======================================================================
 
+    /**
+     * Get specialty value (either custom text or selected item value)
+     */
     public function getSpecialtyValue($specialty): ?string
     {
-        if (is_string($specialty)) {
-            return $this->specialties()->where('name', $specialty)->first()?->pivot?->value;
+        $pivot = $this->getSpecialtyPivot($specialty);
+
+        if (!$pivot) {
+            return null;
         }
 
-        if (is_numeric($specialty)) {
-            return $this->specialties()->where('specialties.id', $specialty)->first()?->pivot?->value;
+        // If specialty_item_id is set, get the value from specialty_item
+        if ($pivot->specialty_item_id) {
+            $specialtyItem = SpecialtyItem::find($pivot->specialty_item_id);
+            return $specialtyItem?->value;
+        }
+
+        // Otherwise return the direct value
+        return $pivot->value;
+    }
+
+    /**
+     * Get specialty pivot record
+     */
+    private function getSpecialtyPivot($specialty)
+    {
+        if (is_string($specialty)) {
+            return $this->specialties()->where('name', $specialty)->first()?->pivot;
+        } elseif (is_numeric($specialty)) {
+            return $this->specialties()->where('specialties.id', $specialty)->first()?->pivot;
         }
 
         return null;
     }
 
+    /**
+     * Get specialty display value with detailed information
+     */
+    public function getSpecialtyDisplayValue($specialty): array
+    {
+        $pivot = null;
+        $specialtyModel = null;
+
+        if (is_string($specialty)) {
+            $specialtyModel = $this->specialties()->where('name', $specialty)->first();
+        } elseif (is_numeric($specialty)) {
+            $specialtyModel = $this->specialties()->where('specialties.id', $specialty)->first();
+        }
+
+        if (!$specialtyModel) {
+            return [
+                'value' => null,
+                'type' => null,
+                'item_id' => null,
+                'custom_value' => null,
+                'display_value' => null,
+                'specialty_name' => null
+            ];
+        }
+
+        $pivot = $specialtyModel->pivot;
+        $displayValue = null;
+
+        if ($pivot->specialty_item_id) {
+            $specialtyItem = SpecialtyItem::find($pivot->specialty_item_id);
+            $displayValue = $specialtyItem?->value;
+        } else {
+            $displayValue = $pivot->value;
+        }
+
+        return [
+            'value' => $pivot->value,
+            'type' => $specialtyModel->type,
+            'item_id' => $pivot->specialty_item_id,
+            'custom_value' => $pivot->value,
+            'display_value' => $displayValue,
+            'specialty_name' => $specialtyModel->name
+        ];
+    }
+
+    /**
+     * Set specialty value (for text type specialties)
+     */
     public function setSpecialtyValue($specialtyId, $value): void
     {
-        $this->specialties()->updateExistingPivot($specialtyId, ['value' => $value]);
+        $this->specialties()->updateExistingPivot($specialtyId, [
+            'value' => $value,
+            'specialty_item_id' => null // Clear item selection when setting custom value
+        ]);
     }
 
-    public function attachSpecialtyWithValue($specialtyId, $value = null): void
+    /**
+     * Set specialty item (for select type specialties)
+     */
+    public function setSpecialtyItem($specialtyId, $itemId, $customValue = null): void
     {
-        $this->specialties()->attach($specialtyId, ['value' => $value]);
+        $this->specialties()->updateExistingPivot($specialtyId, [
+            'value' => $customValue,
+            'specialty_item_id' => $itemId
+        ]);
     }
 
+    /**
+     * Attach specialty with value or item
+     */
+    public function attachSpecialtyWithValue($specialtyId, $value = null, $itemId = null): void
+    {
+        $this->specialties()->attach($specialtyId, [
+            'value' => $value,
+            'specialty_item_id' => $itemId
+        ]);
+    }
+
+    /**
+     * Enhanced sync specialties with their values and items
+     * Expected format: [specialty_id => ['value' => '...', 'item_id' => ...], ...]
+     * OR old format: [specialty_id => 'value', ...] (backward compatibility)
+     */
     public function syncSpecialtiesWithValues(array $specialties): void
     {
         $syncData = [];
-        foreach ($specialties as $specialtyId => $value) {
-            $syncData[$specialtyId] = ['value' => $value];
+
+        foreach ($specialties as $specialtyId => $data) {
+            // Handle both new and old formats
+            if (is_array($data)) {
+                // New format with value and item_id
+                $syncData[$specialtyId] = [
+                    'value' => $data['value'] ?? null,
+                    'specialty_item_id' => $data['item_id'] ?? null
+                ];
+            } else {
+                // Old format - backward compatibility
+                $syncData[$specialtyId] = [
+                    'value' => $data,
+                    'specialty_item_id' => null
+                ];
+            }
         }
+
         $this->specialties()->sync($syncData);
+    }
+
+    /**
+     * Get all specialty values formatted for display
+     */
+    public function getFormattedSpecialties(): array
+    {
+        return $this->specialties->map(function ($specialty) {
+            $displayValue = $this->getSpecialtyDisplayValue($specialty->id);
+
+            return [
+                'id' => $specialty->id,
+                'name' => $specialty->name,
+                'type' => $specialty->type,
+                'type_label' => $specialty->getTypeLabelAttribute(),
+                'value' => $displayValue['value'],
+                'custom_value' => $displayValue['custom_value'],
+                'item_id' => $displayValue['item_id'],
+                'display_value' => $displayValue['display_value']
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Check if product has a specific specialty
+     */
+    public function hasSpecialty($specialtyId): bool
+    {
+        return $this->specialties()->where('specialties.id', $specialtyId)->exists();
+    }
+
+    /**
+     * Get specialty items for select type specialties of this product
+     */
+    public function getSpecialtyItems($specialtyId): array
+    {
+        $specialty = Specialty::find($specialtyId);
+
+        if (!$specialty || !$specialty->isSelectType()) {
+            return [];
+        }
+
+        return $specialty->items()->get(['id', 'value'])->toArray();
+    }
+
+    /**
+     * Get specialties grouped by type
+     */
+    public function getSpecialtiesByType(): array
+    {
+        $formatted = $this->getFormattedSpecialties();
+
+        return [
+            'text' => array_filter($formatted, fn($s) => $s['type'] === 'text'),
+            'select' => array_filter($formatted, fn($s) => $s['type'] === 'select')
+        ];
     }
 
     //======================================================================
@@ -286,6 +465,29 @@ class Product extends Model implements HasMedia
     {
         return $query->whereHas('specialties', function ($q) use ($specialtyId) {
             $q->where('specialties.id', $specialtyId);
+        });
+    }
+
+    /**
+     * Scope for products with text type specialty values
+     */
+    public function scopeWithSpecialtyValue($query, $specialtyId, $value)
+    {
+        return $query->whereHas('specialties', function ($q) use ($specialtyId, $value) {
+            $q->where('specialties.id', $specialtyId)
+                ->wherePivot('value', $value)
+                ->wherePivot('specialty_item_id', null);
+        });
+    }
+
+    /**
+     * Scope for products with specific specialty item
+     */
+    public function scopeWithSpecialtyItem($query, $specialtyId, $itemId)
+    {
+        return $query->whereHas('specialties', function ($q) use ($specialtyId, $itemId) {
+            $q->where('specialties.id', $specialtyId)
+                ->wherePivot('specialty_item_id', $itemId);
         });
     }
 }

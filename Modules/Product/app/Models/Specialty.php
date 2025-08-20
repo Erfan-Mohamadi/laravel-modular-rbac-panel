@@ -26,17 +26,22 @@ class Specialty extends Model
         'status' => 'boolean',
     ];
 
+    // Type constants
+    const TYPE_TEXT = 'text';
+    const TYPE_SELECT = 'select';
+
     //======================================================================
     // RELATIONSHIPS
     //======================================================================
 
     /**
      * Many-to-many relationship with products (Product->N:M->Specialty)
+     * Updated to include specialty_item_id in pivot
      */
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'product_specialty')
-            ->withPivot('value')
+            ->withPivot(['value', 'specialty_item_id'])
             ->withTimestamps();
     }
 
@@ -49,19 +54,20 @@ class Specialty extends Model
     }
 
     /**
-     * Many-to-many relationship with categories (Specialty->N:M->Category)
+     * Get active specialty items
      */
-    public function categories()
+    public function activeItems(): HasMany
     {
-        return $this->belongsToMany(Category::class);
+        return $this->items(); // Add any active scope if needed later
     }
 
-
     /**
-     * Relationship with categories (many-to-many)
+     * Many-to-many relationship with categories (Specialty->N:M->Category)
      */
-
-
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'category_specialty');
+    }
 
     //======================================================================
     // HELPER METHODS
@@ -92,17 +98,64 @@ class Specialty extends Model
     }
 
     /**
-     * Get unique specialty values used by products
+     * Get unique specialty values used by products (text values only)
      */
     public function getUsedValues(): array
     {
         return $this->products()
             ->wherePivot('value', '!=', null)
+            ->wherePivot('specialty_item_id', null) // Only custom text values
             ->get()
             ->pluck('pivot.value')
             ->unique()
             ->values()
             ->toArray();
+    }
+
+    /**
+     * Get used specialty items (for select type specialties)
+     */
+    public function getUsedItems(): array
+    {
+        return $this->products()
+            ->wherePivot('specialty_item_id', '!=', null)
+            ->get()
+            ->pluck('pivot.specialty_item_id')
+            ->unique()
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Check if specialty is select type
+     */
+    public function isSelectType(): bool
+    {
+        return $this->type === self::TYPE_SELECT;
+    }
+
+    /**
+     * Check if specialty is text type
+     */
+    public function isTextType(): bool
+    {
+        return $this->type === self::TYPE_TEXT;
+    }
+
+    /**
+     * Get type label in Persian
+     */
+    public function getTypeLabelAttribute(): string
+    {
+        return $this->type === self::TYPE_TEXT ? 'متن' : 'انتخابی';
+    }
+
+    /**
+     * Get items count for select type specialties
+     */
+    public function getItemsCountAttribute(): int
+    {
+        return $this->isSelectType() ? $this->items()->count() : 0;
     }
 
     //======================================================================
@@ -122,7 +175,7 @@ class Specialty extends Model
      */
     public function scopeTextType($query)
     {
-        return $query->where('type', 'text');
+        return $query->where('type', self::TYPE_TEXT);
     }
 
     /**
@@ -130,7 +183,7 @@ class Specialty extends Model
      */
     public function scopeSelectType($query)
     {
-        return $query->where('type', 'select');
+        return $query->where('type', self::TYPE_SELECT);
     }
 
     /**
@@ -161,32 +214,12 @@ class Specialty extends Model
         });
     }
 
-    //======================================================================
-    // HELPER METHODS
-    //======================================================================
-
     /**
-     * Check if specialty is select type
+     * Scope for specialties with items (select type with predefined options)
      */
-    public function isSelectType(): bool
+    public function scopeWithItems($query)
     {
-        return $this->type === 'select';
+        return $query->selectType()->whereHas('items');
     }
 
-    /**
-     * Check if specialty is text type
-     */
-    public function isTextType(): bool
-    {
-        return $this->type === 'text';
-    }
-
-    //======================================================================
-    // FACTORY
-    //======================================================================
-
-    protected static function newFactory()
-    {
-        return \Modules\Product\Database\factories\SpecialtyFactory::new();
-    }
 }

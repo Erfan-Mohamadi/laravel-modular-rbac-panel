@@ -109,14 +109,13 @@
                                     @endswitch
                                 </td>
                                 <td>
-                                    @if($product->categories->isNotEmpty())
-                                        @foreach($product->categories as $cat)
-                                            <span class="badge bg-light text-dark">{{ $cat->name }}</span>
-                                        @endforeach
+                                    @if($product->category)
+                                        <span class="badge bg-light text-dark">{{ $product->category->name }}</span>
                                     @else
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
+
                                 <td>{{ verta($product->created_at)->format('Y/m/d') }}</td>
                                 <td>
                                     <div class="btn-group" role="group" aria-label="Product actions">
