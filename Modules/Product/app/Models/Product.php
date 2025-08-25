@@ -490,4 +490,14 @@ class Product extends Model implements HasMedia
                 ->wherePivot('specialty_item_id', $itemId);
         });
     }
+
+    public function getAvailabilityAttribute()
+    {
+        return $this->availability_status;
+    }
+
+    public function setAvailabilityAttribute($value)
+    {
+        $this->attributes['availability_status'] = $value;
+    }
 }

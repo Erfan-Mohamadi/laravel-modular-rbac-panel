@@ -204,6 +204,24 @@
         });
     });
 </script>
+<!-- CKEditor -->
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Find all textareas with class="ckeditor"
+        document.querySelectorAll('.ckeditor').forEach((editorEl) => {
+            ClassicEditor
+                .create(editorEl, {
+                    language: 'fa', // Persian language
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        });
+    });
+</script>
+
 
 @yield('scripts')
 

@@ -71,7 +71,7 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="#">
+                                    <a class="nav-link" href="{{ route('provinces.index') }}">
                                         <i class="nav-icon bi bi-pin-map"></i>
                                         <p>استان‌ها</p>
                                     </a>

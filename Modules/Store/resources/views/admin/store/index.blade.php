@@ -108,7 +108,9 @@
                                             -
                                         @endif
                                     </td>
-                                    <td>{{ $transaction->created_at->format('Y-m-d H:i') }}</td>
+                                    <td>
+                                    {{ verta($transaction->created_at)->format('Y/m/d H:i') }}
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>

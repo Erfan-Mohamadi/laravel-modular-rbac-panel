@@ -235,52 +235,116 @@ class ProductController extends Controller
     /**
      * Update product and sync relationships
      */
-// Update product
+    /**
+     * Update product and sync relationships
+     */
     public function update(ProductUpdateRequest $request, Product $product)
     {
-        // Update product fields
+        // 1️⃣ Update basic product fields
+        $data = $request->validated();
+
+        // Ensure status is properly handled
+        $data['status'] = $request->boolean('status', false);
+        $data['discount'] = $data['discount'] ?? 0;
+
+        // Update the product
         $product->update([
-            'title' => $request->title,
-            'description' => $request->description,
-            'price' => $request->price,
-            'discount' => $request->discount,
-            'availability' => $request->availability,
-            'category_id' => $request->category_id,
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'price' => $data['price'],
+            'discount' => $data['discount'],
+            'availability' => $data['availability'],
+            'category_id' => $data['category_id'],
+            'status' => $data['status']
         ]);
 
-        // Handle main image
-        if ($request->has('remove_main_image')) {
-            $product->clearMediaCollection('main');
-        }
-        if ($request->hasFile('main_image')) {
-            $product->clearMediaCollection('main');
-            $product->addMediaFromRequest('main_image')->toMediaCollection('main');
+        // 2️⃣ Handle specialty relationships with pivot data
+        if ($request->has('specialties')) {
+            $specialtyData = [];
+
+            foreach ($request->get('specialties', []) as $specialtyId) {
+                $specialty = Specialty::find($specialtyId);
+
+                if ($specialty) {
+                    if ($specialty->isTextType()) {
+                        $customValue = $request->input("specialty_values.{$specialtyId}");
+                        $specialtyData[$specialtyId] = [
+                            'value' => $customValue,
+                            'specialty_item_id' => null
+                        ];
+                    } elseif ($specialty->isSelectType()) {
+                        $selectedItemIds = $request->input("specialty_items.{$specialtyId}", []);
+                        if (!is_array($selectedItemIds)) {
+                            $selectedItemIds = [$selectedItemIds];
+                        }
+
+                        // For select type, we might need multiple entries or handle differently
+                        // This depends on your business logic
+                        foreach ($selectedItemIds as $itemId) {
+                            $specialtyData[$specialtyId] = [
+                                'value' => null,
+                                'specialty_item_id' => $itemId
+                            ];
+                            // If you need multiple items, you'd handle this differently
+                            break; // Taking only the first one for now
+                        }
+                    } else {
+                        $specialtyData[$specialtyId] = [
+                            'value' => null,
+                            'specialty_item_id' => null
+                        ];
+                    }
+                }
+            }
+
+            // Sync specialties (this will remove old ones and add new ones)
+            $product->specialties()->sync($specialtyData);
+        } else {
+            // If no specialties selected, detach all
+            $product->specialties()->detach();
         }
 
-        // Handle gallery images
+        // 3️⃣ Handle brand relationships
+        if ($request->has('brands')) {
+            $product->brands()->sync($request->get('brands', []));
+        } else {
+            $product->brands()->detach();
+        }
+
+        // 4️⃣ Handle main image
+        if ($request->boolean('remove_main_image')) {
+            $product->clearMediaCollection('main');
+        }
+
+        if ($request->hasFile('main_image')) {
+            // Clear existing main image first
+            $product->clearMediaCollection('main');
+            $product->addMediaFromRequest('main_image')
+                ->toMediaCollection('main');
+        }
+
+        // 5️⃣ Handle gallery images removal
         if ($request->has('remove_gallery_images')) {
-            foreach ($request->remove_gallery_images as $mediaId) {
-                $media = $product->media()->find($mediaId);
+            foreach ($request->get('remove_gallery_images', []) as $mediaId) {
+                $media = $product->getMedia('gallery')->where('id', $mediaId)->first();
                 if ($media) {
                     $media->delete();
                 }
             }
         }
+
+        // 6️⃣ Handle new gallery images upload
         if ($request->hasFile('gallery_images')) {
-            foreach ($request->file('gallery_images') as $image) {
-                $product->addMediaFromRequest($image)->toMediaCollection('gallery');
+            foreach ($request->file('gallery_images') as $file) {
+                $product->addMedia($file)
+                    ->toMediaCollection('gallery');
             }
         }
-
-        // Sync specialties and brands (same as before)
-        // ... rest of your specialty and brand syncing code
 
         return redirect()
             ->route('products.index')
             ->with('success', 'محصول با موفقیت ویرایش شد.');
     }
-
-
     /**
      * Delete product
      */

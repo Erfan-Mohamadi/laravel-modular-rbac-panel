@@ -72,10 +72,6 @@
                             <td>{{ $product->store?->balance ?? 0 }}</td>
                         </tr>
                         <tr>
-                            <th>وضعیت</th>
-                            <td>{{ $product->status ? 'فعال' : 'غیرفعال' }}</td>
-                        </tr>
-                        <tr>
                             <th>توضیحات</th>
                             <td>{!! nl2br(e($product->description)) !!}</td>
                         </tr>

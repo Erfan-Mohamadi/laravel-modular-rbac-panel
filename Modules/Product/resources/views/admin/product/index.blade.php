@@ -65,7 +65,7 @@
                             <th>نام محصول</th>
                             <th>قیمت</th>
                             <th>تخفیف</th>
-                            <th>وضعیت</th>
+                            <th>وزن (گرم)</th>
                             <th>دسترس‌پذیری</th>
                             <th>دسته‌بندی‌ها</th>
                             <th>تاریخ ثبت</th>
@@ -88,13 +88,7 @@
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
-                                <td>
-                                    @if($product->status)
-                                        <span class="badge bg-success">فعال</span>
-                                    @else
-                                        <span class="badge bg-danger">غیرفعال</span>
-                                    @endif
-                                </td>
+                                <td>{{ $product->weight }}</td>
                                 <td>
                                     @switch($product->availability_status)
                                         @case(\Modules\Product\Models\Product::AVAILABLE)

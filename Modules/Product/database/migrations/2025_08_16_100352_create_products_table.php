@@ -15,7 +15,7 @@ return new class extends Migration
             $table->unsignedBigInteger('price'); // Using integer for price in cents/minor units
             $table->unsignedTinyInteger('discount')->default(0)->nullable();
             $table->enum('availability_status', ['coming_soon', 'available', 'unavailable'])->default('available');
-            $table->boolean('status')->default(true); // active/inactive
+            $table->unsignedInteger('weight');
             $table->text('description')->nullable();
 
             // Foreign key columns

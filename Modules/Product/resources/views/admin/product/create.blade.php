@@ -79,9 +79,9 @@
                             <label for="availability_status" class="form-label">وضعیت موجودی <span class="text-danger">*</span></label>
                             <select class="form-control @error('availability_status') is-invalid @enderror"
                                     id="availability_status" name="availability_status" required>
-                                <option value="">انتخاب کنید</option>
+                                <option value="" selected>انتخاب کنید</option>
                                 @foreach($availabilityStatuses as $key => $label)
-                                    <option value="{{ $key }}" {{ old('availability_status','available') == $key ? 'selected' : '' }}>
+                                    <option value="{{ $key }}" {{ old('availability_status','available') == $key}}>
                                         {{ $label }}
                                     </option>
                                 @endforeach
@@ -150,20 +150,29 @@
                         <!-- Description -->
                         <div class="form-group mb-3">
                             <label for="description" class="form-label">توضیحات</label>
-                            <textarea name="description" id="description" class="form-control @error('description') is-invalid @enderror" rows="4" placeholder="توضیحات کاملی از محصول ارائه دهید...">{{ old('description') }}</textarea>
+                            <textarea name="description"
+                                      id="description"
+                                      class="form-control ckeditor @error('description') is-invalid @enderror"
+                                      rows="4"
+                                      placeholder="توضیحات کاملی از محصول ارائه دهید...">{{ old('description') }}</textarea>
                             <small class="form-text text-muted">توضیحات تکمیلی در مورد محصول.</small>
-                            @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('description')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
-                        <!-- Status -->
-                        <div class="form-group mb-3">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="status" name="status" value="1"
-                                    {{ old('status', true) ? 'checked' : '' }}>
-                                <label class="form-check-label" for="status">فعال</label>
-                                <small class="form-text text-muted d-block">فقط محصولات فعال برای کاربران نمایش داده می‌شوند.</small>
+
+                        <!-- weight -->
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="weight" class="form-label">وزن (گرم)</label>
+                                <input type="number" class="form-control" id="weight" name="weight"
+                                       value="{{ old('weight') }}" placeholder="0"
+                                       min="0" step="50" required autocomplete="off">
+                                <small class="form-text text-muted d-block" >وزن باید به گرم وارد شود.</small>
                             </div>
                         </div>
+
 
                     </div>
 
@@ -504,6 +513,14 @@
             border-radius: 4px;
             font-size: 12px;
             color: #666;
+        }
+        .ck-editor__editable_inline {
+            min-height: 150px;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem; /* Bootstrap form-control radius */
+            padding: 0.5rem;
+            background-color: #fff;
+            direction: rtl; /* RTL support */
         }
 
     </style>

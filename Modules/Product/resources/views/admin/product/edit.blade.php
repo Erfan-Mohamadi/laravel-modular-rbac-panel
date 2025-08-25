@@ -133,9 +133,11 @@
                                     </div>
                                 </div>
                             </div>
+                            <!-- weight -->
 
                             <div class="row">
-                                <div class="col-md-6">
+
+                                <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label for="price" class="form-label">قیمت (تومان)</label>
                                         <input type="number" class="form-control @error('price') is-invalid @enderror"
@@ -146,12 +148,39 @@
                                     </div>
                                 </div>
 
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label for="discount" class="form-label">تخفیف (تومان)</label>
                                         <input type="number" class="form-control @error('discount') is-invalid @enderror"
                                                id="discount" name="discount" value="{{ old('discount', $product->discount) }}" min="0" step="1000">
                                         @error('discount')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group mb-3">
+                                        <label for="weight" class="form-label">وزن (گرم)</label>
+                                        <input type="number" class="form-control" id="weight" name="weight"
+                                               value="{{ old('weight', $product->weight) }}" placeholder="0"
+                                               min="0" step="50" required autocomplete="off">
+                                        <small class="form-text text-muted d-block" >وزن باید به گرم وارد شود.</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group mb-3">
+                                        <label for="availability" class="form-label">وضعیت موجودی</label>
+                                        <select class="form-select @error('availability') is-invalid @enderror"
+                                                id="availability" name="availability">
+                                            <option value="" selected>انتخاب کنید</option>
+                                            @foreach($availabilityStatuses as $key => $status)
+                                                <option value="{{ $key }}"
+                                                    {{ old('availability', $product->availability) == $key}}>
+                                                    {{ $status }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('availability')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
@@ -171,29 +200,9 @@
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group mb-3">
-                                        <label for="availability" class="form-label">وضعیت موجودی</label>
-                                        <select class="form-select @error('availability') is-invalid @enderror"
-                                                id="availability" name="availability">
-                                            @foreach($availabilityStatuses as $key => $status)
-                                                <option value="{{ $key }}"
-                                                    {{ old('availability', $product->availability) == $key ? 'selected' : '' }}>
-                                                    {{ $status }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('availability')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- Main Image -->
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-2">
                                     <div class="form-group mb-3">
                                         <label for="main_image" class="form-label">تصویر اصلی محصول</label>
                                         <input type="file" class="form-control @error('main_image') is-invalid @enderror"
@@ -203,11 +212,11 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
-                                    @if($product->getFirstMedia('main'))
+                                    @if($product->getMainImageUrl('main'))
                                         <div class="current-main-image mb-3">
                                             <label class="form-label">تصویر اصلی فعلی:</label>
                                             <div class="card" style="width: 200px;">
-                                                <img src="{{ $product->getFirstMediaUrl('main') }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                                <img src="{{ $product->getMainImageUrl('main') }}" class="card-img-top" style="height: 150px; object-fit: cover;">
                                                 <div class="card-body p-2">
                                                     <div class="form-check">
                                                         <input type="checkbox" class="form-check-input"
@@ -223,7 +232,7 @@
                                     @endif
                                 </div>
 
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label for="gallery_images" class="form-label">تصاویر گالری</label>
                                         <input type="file" class="form-control @error('gallery_images') is-invalid @enderror @error('gallery_images.*') is-invalid @enderror"
@@ -238,7 +247,7 @@
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <!-- Current Gallery Images -->
                             @if($galleryImages && $galleryImages->count() > 0)
                                 <div class="row">
