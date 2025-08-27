@@ -7,10 +7,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
-
 use Modules\Admin\Models\Admin;  // Import Admin model
 
-class AuthController extends Controller
+class AdminAuthController extends Controller
 {
     // =============================================
     // AUTHENTICATION VIEW METHODS
@@ -77,6 +76,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('showLoginForm');
+        return redirect()->route('admin.showLoginForm');
     }
 }
