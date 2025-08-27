@@ -1,8 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Auth\Http\Controllers\AuthController;
+use Modules\Auth\Http\Controllers\API\Customer\AuthController;
 
-Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
-    Route::apiResource('auths', AuthController::class)->names('auth');
+Route::prefix('customer')->group(function () {
+    // Public routes
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('login', [AuthController::class, 'login']);
+
+    // Protected routes (require token)
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('profile', [AuthController::class, 'profile']);
+        Route::post('logout', [AuthController::class, 'logout']);
+    });
 });

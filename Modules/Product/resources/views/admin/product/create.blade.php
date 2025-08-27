@@ -33,18 +33,17 @@
 
                         <div class="row">
                             <!-- Price -->
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label for="price" class="form-label">قیمت (تومان) <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control @error('price') is-invalid @enderror"
-                                           id="price" name="price" value="{{ old('price') }}" placeholder="0"
-                                           min="0" step="50" required autocomplete="off">
-                                    @error('price')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="col-md-3">
+                                    <div class="form-group mb-3">
+                                        <label for="price" class="form-label">قیمت (تومان) <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control @error('price') is-invalid @enderror"
+                                               id="price" name="price" value="{{ old('price') }}" placeholder="0"
+                                               min="0" step="50" required autocomplete="off">
+                                        @error('price')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
                                 </div>
-                            </div>
-
                             <!-- Discount -->
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <div class="form-group mb-3">
                                     <label for="discount" class="form-label">تخفیف (تومان)</label>
                                     <input type="number" class="form-control @error('discount') is-invalid @enderror"
@@ -54,6 +53,44 @@
                                     @error('discount')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             </div>
+                            <!-- weight -->
+                            <div class="col-md-2">
+                                <div class="form-group mb-3">
+                                    <label for="weight" class="form-label">وزن (گرم)<span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="weight" name="weight"
+                                           value="{{ old('weight') }}" placeholder="0"
+                                           min="0" step="50" required autocomplete="off">
+                                    <small class="form-text text-muted d-block" >وزن باید به گرم وارد شود.</small>
+                                </div>
+                            </div>
+
+                            <!-- Availability Status -->
+                                <div class="col-md-2">
+                                    <div class="form-group mb-3">
+                                        <label for="availability_status" class="form-label">وضعیت موجودی <span class="text-danger">*</span></label>
+                                        <select class="form-control @error('availability_status') is-invalid @enderror"
+                                                id="availability_status" name="availability_status" required>
+                                            <option value="" selected>انتخاب کنید</option>
+                                            @foreach($availabilityStatuses as $key => $label)
+                                                <option value="{{ $key }}" {{ old('availability_status','available') == $key}}>
+                                                    {{ $label }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('availability_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                            <!-- Initial Stock -->
+                            <div class="col-md-2">
+                                <div class="form-group mb-3">
+                                    <label for="initial_stock" class="form-label">موجودی اولیه</label>
+                                    <input type="number" class="form-control @error('initial_stock') is-invalid @enderror"
+                                           id="initial_stock" name="initial_stock" value="{{ old('initial_stock',0) }}"
+                                           placeholder="0" min="0" step="1" autocomplete="off">
+                                    @error('initial_stock')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+
                         </div>
                         <!-- Price Preview -->
                         <div class="form-group mb-3">
@@ -74,35 +111,13 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Availability Status -->
-                        <div class="form-group mb-3">
-                            <label for="availability_status" class="form-label">وضعیت موجودی <span class="text-danger">*</span></label>
-                            <select class="form-control @error('availability_status') is-invalid @enderror"
-                                    id="availability_status" name="availability_status" required>
-                                <option value="" selected>انتخاب کنید</option>
-                                @foreach($availabilityStatuses as $key => $label)
-                                    <option value="{{ $key }}" {{ old('availability_status','available') == $key}}>
-                                        {{ $label }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('availability_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
 
-                        <!-- Initial Stock -->
-                        <div class="form-group mb-3">
-                            <label for="initial_stock" class="form-label">تعداد اولیه</label>
-                            <input type="number" class="form-control @error('initial_stock') is-invalid @enderror"
-                                   id="initial_stock" name="initial_stock" value="{{ old('initial_stock',0) }}"
-                                   placeholder="0" min="0" step="1" autocomplete="off">
-                            <small class="form-text text-muted">اگر می‌خواهید موجودی اولیه برای این محصول ثبت شود، مقدار را وارد کنید.</small>
-                            @error('initial_stock')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
+
 
                         <!-- Categories -->
                         @if(isset($categories) && count($categories) > 0)
                             <div class="form-group mb-3">
-                                <label for="category_id" class="form-label fw-bold">دسته‌بندی</label>
+                                <label for="category_id" class="form-label fw-bold">دسته‌بندی<span class="text-danger">*</span></label>
                                 <select name="category_id" id="category_id" class="form-select @error('category_id') is-invalid @enderror">
                                     <option value="">انتخاب دسته‌بندی</option>
                                     @foreach($categories as $id => $name)
@@ -162,16 +177,7 @@
                         </div>
 
 
-                        <!-- weight -->
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label for="weight" class="form-label">وزن (گرم)</label>
-                                <input type="number" class="form-control" id="weight" name="weight"
-                                       value="{{ old('weight') }}" placeholder="0"
-                                       min="0" step="50" required autocomplete="off">
-                                <small class="form-text text-muted d-block" >وزن باید به گرم وارد شود.</small>
-                            </div>
-                        </div>
+
 
 
                     </div>

@@ -2,21 +2,29 @@
 
 namespace Modules\Customer\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-// use Modules\Customer\Database\Factories\CustomerFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
-class Customer extends Model
+class Customer extends Authenticatable
 {
-    use HasFactory;
+    use HasApiTokens, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     */
-    protected $fillable = [];
+    protected $fillable = [
+        'name',
+        'email',
+        'mobile',
+        'password',
+        'status',
+    ];
 
-    // protected static function newFactory(): CustomerFactory
-    // {
-    //     // return CustomerFactory::new();
-    // }
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
+    }
 }

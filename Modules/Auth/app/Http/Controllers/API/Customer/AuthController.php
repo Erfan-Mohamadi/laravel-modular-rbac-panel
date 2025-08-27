@@ -2,90 +2,76 @@
 
 namespace Modules\Auth\Http\Controllers\API\Customer;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
 use Modules\Customer\Models\Customer;
 
-class CustomerAuthController extends Controller
+class AuthController extends Controller
 {
-    /**
-     * Register a new customer
-     */
+    // Customer login
+    public function login(Request $request)
+    {
+        $request->validate([
+            'mobile' => 'required|string|exists:customers,mobile',
+            // 'password' => 'required|string', // uncomment if using password login
+        ]);
+
+        $customer = Customer::where('mobile', $request->mobile)->first();
+
+        // If password login is required
+        // if (!Hash::check($request->password, $customer->password)) {
+        //     return response()->json(['message' => 'Invalid credentials'], 401);
+        // }
+
+        // Update last login
+        $customer->update(['last_login_date' => now()]);
+
+        // Create token
+        $token = $customer->createToken('customer-token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Logged in successfully',
+            'token' => $token,
+            'customer' => $customer
+        ]);
+    }
+
+    // Customer register
     public function register(Request $request)
     {
-        $data = $request->validate([
-            'name' => ['nullable', 'string', 'max:100'],
-            'email' => ['nullable', 'email', 'unique:customers,email'],
-            'mobile' => ['required', 'string', 'max:20', 'unique:customers,mobile'],
-            'password' => ['required', 'string', 'min:6'],
+        $request->validate([
+            'mobile' => 'required|string|unique:customers,mobile',
+            'name' => 'nullable|string|max:100',
+            // 'password' => 'nullable|string|min:6' // optional
         ]);
 
         $customer = Customer::create([
-            'name' => $data['name'] ?? null,
-            'email' => $data['email'] ?? null,
-            'mobile' => $data['mobile'],
-            'password' => Hash::make($data['password']),
+            'mobile' => $request->mobile,
+            'name' => $request->name,
+            // 'password' => isset($request->password) ? Hash::make($request->password) : null,
         ]);
 
-        // Create Sanctum token
-        $token = $customer->createToken('api-token')->plainTextToken;
+        $token = $customer->createToken('customer-token')->plainTextToken;
 
         return response()->json([
-            'message' => 'ثبت‌نام با موفقیت انجام شد.',
-            'customer' => $customer,
+            'message' => 'Registered successfully',
             'token' => $token,
-        ], 201);
+            'customer' => $customer
+        ]);
     }
 
-    /**
-     * Login existing customer
-     */
-    public function login(Request $request)
+    // Customer profile
+    public function profile(Request $request)
     {
-        $credentials = $request->validate([
-            'mobile' => ['required', 'string'],
-            'password' => ['required', 'string'],
-        ]);
-
-        $customer = Customer::where('mobile', $credentials['mobile'])->first();
-
-        if (! $customer || ! Hash::check($credentials['password'], $customer->password)) {
-            return response()->json([
-                'message' => 'شماره موبایل یا رمز عبور اشتباه است!',
-            ], 401);
-        }
-
-        // Revoke old tokens (optional, if you want single-device login)
-        $customer->tokens()->delete();
-
-        // Create new token
-        $token = $customer->createToken('api-token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'ورود موفقیت‌آمیز بود.',
-            'customer' => $customer,
-            'token' => $token,
-        ]);
+        return response()->json($request->user());
     }
 
-    /**
-     * Logout (revoke current token)
-     */
+    // Logout
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            'message' => 'خروج از حساب کاربری انجام شد.',
-        ]);
-    }
-
-    /**
-     * Get current authenticated customer
-     */
-    public function profile(Request $request)
-    {
-        return response()->json($request->user());
+        return response()->json(['message' => 'Logged out successfully']);
     }
 }

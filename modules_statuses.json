@@ -8,5 +8,7 @@
     "Area": true,
     "Product": true,
     "Category": true,
-    "Store": true
+    "Store": true,
+    "Shipping": true,
+    "User": true
 }
