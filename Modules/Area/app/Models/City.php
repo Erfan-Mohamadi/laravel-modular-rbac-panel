@@ -4,6 +4,7 @@ namespace Modules\Area\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Modules\Customer\Models\Address;
 
 class City extends Model
 {
@@ -13,7 +14,10 @@ class City extends Model
     {
         return $this->belongsTo(Province::class);
     }
-
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
+    }
     protected static function booted()
     {
         static::created(fn () => Cache::forget('cities_list'));

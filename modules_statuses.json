@@ -10,5 +10,6 @@
     "Category": true,
     "Store": true,
     "Shipping": true,
-    "User": true
+    "User": true,
+    "Order": true
 }
