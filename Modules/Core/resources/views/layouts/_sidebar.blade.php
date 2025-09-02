@@ -120,6 +120,12 @@
                                 <p>محصولات</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('shipping.index') }}">
+                                <i class="nav-icon bi bi-truck"></i>
+                                <p>ارسال</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 <li class="nav-item">

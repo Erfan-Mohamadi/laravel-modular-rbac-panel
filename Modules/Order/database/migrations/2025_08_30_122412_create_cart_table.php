@@ -13,8 +13,30 @@ return new class extends Migration
     {
         Schema::create('cart', function (Blueprint $table) {
             $table->id();
-            
+
+            // Foreign keys
+            $table->unsignedBigInteger('product_id');
+            $table->unsignedBigInteger('customer_id');
+
+            $table->unsignedInteger('quantity');
+            $table->unsignedBigInteger('price');
+
+            // Virtual column (calculated on the fly, not stored)
+            $table->unsignedBigInteger('total_price')->virtualAs('price * quantity');
+
             $table->timestamps();
+
+            // Add constraints
+            $table->foreign('product_id')
+                ->references('id')
+                ->on('products');
+
+            $table->foreign('customer_id')
+                ->references('id')
+                ->on('customers');
+
+            // Ensure uniqueness
+            $table->unique(['product_id', 'customer_id']);
         });
     }
 
