@@ -5,7 +5,6 @@ use Modules\Customer\Http\Controllers\API\CustomerController;
 use Modules\Customer\Http\Controllers\API\AddressController;
 use Modules\Customer\Http\Controllers\API\LocationController;
 
-// Location routes (public - no auth needed)
 Route::prefix('customer')->group(function () {
     Route::get('provinces', [LocationController::class, 'provinces']);
     Route::get('provinces/{provinceId}/cities', [LocationController::class, 'cities']);

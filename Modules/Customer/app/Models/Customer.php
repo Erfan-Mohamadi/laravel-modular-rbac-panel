@@ -30,8 +30,9 @@ class Customer extends Authenticatable
 
     protected $casts = [
         'mobile_verified_at' => 'timestamp',
-        'otp_expires_at' => 'timestamp',
+        'otp_expires_at' => 'datetime', // Laravel will convert DB value to Carbon
         'status' => 'boolean',
+
     ];
 
     // Relationship to addresses

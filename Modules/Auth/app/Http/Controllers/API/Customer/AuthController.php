@@ -41,8 +41,14 @@ class AuthController extends Controller
     // Step 2: Verify OTP and complete registration
     public function verifyOtpAndRegister(Request $request)
     {
+        // Force customer_id to integer
+        $request->merge([
+            'customer_id' => (int) $request->customer_id
+        ]);
+
+
         $request->validate([
-            'customer_id' => 'required|exists:customers,id',
+            'customer_id' => 'required|integer|exists:customers,id',
             'otp' => 'required|string|size:6',
             'name' => 'required|string|max:100',
             'password' => 'required|string|min:6',
@@ -50,7 +56,7 @@ class AuthController extends Controller
 
         $customer = Customer::find($request->customer_id);
 
-        // Check if OTP is valid and not expired
+        // Check OTP
         if ($customer->otp !== $request->otp) {
             return response()->json(['message' => 'Invalid OTP'], 400);
         }
@@ -64,8 +70,8 @@ class AuthController extends Controller
             'name' => $request->name,
             'password' => Hash::make($request->password),
             'mobile_verified_at' => now(),
-            'status' => 1, // Verified
-            'otp' => null, // Clear OTP
+            'status' => 1,
+            'otp' => null,
             'otp_expires_at' => null,
         ]);
 
@@ -78,6 +84,7 @@ class AuthController extends Controller
         ]);
     }
 
+
     // Resend OTP
     public function resendOtp(Request $request)
     {
@@ -85,7 +92,7 @@ class AuthController extends Controller
             'customer_id' => 'required|exists:customers,id',
         ]);
 
-        $customer = Customer::find($request->customer_id);
+        $customer = Customer::query()->find($request->customer_id);
 
         if ($customer->status == 1) {
             return response()->json(['message' => 'Customer already verified'], 400);

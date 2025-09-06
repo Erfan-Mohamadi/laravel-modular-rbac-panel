@@ -12,10 +12,10 @@ class LocationController extends Controller
     // Get all provinces
     public function provinces()
     {
-        $provinces = Province::all();
+        $provinces = Province::query()->select('id', 'name')->get();
 
         return response()->json([
-            'message' => 'Provinces retrieved successfully',
+            'message' => 'استان‌ها با موفقیت بازیابی شدند.',
             'provinces' => $provinces
         ]);
     }
@@ -27,10 +27,10 @@ class LocationController extends Controller
             'province_id' => 'exists:provinces,id'
         ]);
 
-        $cities = City::where('province_id', $provinceId)->get();
+        $cities = City::query()->where('province_id', $provinceId)->get();
 
         return response()->json([
-            'message' => 'Cities retrieved successfully',
+            'message' => 'شهرها با موفقیت بازیابی شدند.',
             'cities' => $cities
         ]);
     }
@@ -41,7 +41,7 @@ class LocationController extends Controller
         $cities = City::with('province')->get();
 
         return response()->json([
-            'message' => 'All cities retrieved successfully',
+            'message' => 'همه شهرها با موفقیت بازیابی شدند.',
             'cities' => $cities
         ]);
     }

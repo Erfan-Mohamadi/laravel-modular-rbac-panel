@@ -4,6 +4,8 @@ namespace Modules\Customer\Http\Controllers\API;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Modules\Customer\Http\Requests\AddressStoreRequest;
+use Modules\Customer\Http\Requests\AddressUpdateRequest;
 use Modules\Customer\Models\Address;
 
 class AddressController extends Controller
@@ -14,24 +16,14 @@ class AddressController extends Controller
         $addresses = $request->user()->addresses()->with(['province', 'city'])->get();
 
         return response()->json([
-            'message' => 'Addresses retrieved successfully',
+            'message' => 'آدرس‌ها با موفقیت بازیابی شدند.',
             'addresses' => $addresses
         ]);
     }
 
     // Create new address
-    public function store(Request $request)
+    public function store(AddressStoreRequest $request)
     {
-        $request->validate([
-            'title' => 'nullable|string|max:100',
-            'province_id' => 'required|exists:provinces,id',
-            'city_id' => 'required|exists:cities,id',
-            'district' => 'nullable|string|max:100',
-            'postal_code' => 'required|string|max:20',
-            'address_line' => 'nullable|string|max:500',
-        ]);
-
-        // Verify city belongs to province
         $cityBelongsToProvince = \DB::table('cities')
             ->where('id', $request->city_id)
             ->where('province_id', $request->province_id)
@@ -39,23 +31,16 @@ class AddressController extends Controller
 
         if (!$cityBelongsToProvince) {
             return response()->json([
-                'message' => 'Selected city does not belong to the selected province'
+                'message' => 'شهر انتخاب شده متعلق به استان انتخاب شده نیست.'
             ], 422);
         }
 
-        $address = $request->user()->addresses()->create([
-            'title' => $request->title,
-            'province_id' => $request->province_id,
-            'city_id' => $request->city_id,
-            'district' => $request->district,
-            'postal_code' => $request->postal_code,
-            'address_line' => $request->address_line,
-        ]);
+        $address = $request->user()->addresses()->create($request->validated());
 
-        $address->load(['province', 'city']); // Load relationships
+        $address->load(['province', 'city']);
 
         return response()->json([
-            'message' => 'Address created successfully',
+            'message' => 'آدرس با موفقیت ایجاد شد.',
             'address' => $address
         ], 201);
     }
@@ -66,24 +51,14 @@ class AddressController extends Controller
         $address = $request->user()->addresses()->with(['province', 'city'])->findOrFail($id);
 
         return response()->json([
-            'message' => 'Address retrieved successfully',
+            'message' => 'آدرس با موفقیت بازیابی شد.',
             'address' => $address
         ]);
     }
 
     // Update address
-    public function update(Request $request, $id)
+    public function update(AddressUpdateRequest $request, $id)
     {
-        $request->validate([
-            'title' => 'nullable|string|max:100',
-            'province_id' => 'required|exists:provinces,id',
-            'city_id' => 'required|exists:cities,id',
-            'district' => 'nullable|string|max:100',
-            'postal_code' => 'required|string|max:20',
-            'address_line' => 'nullable|string|max:500',
-        ]);
-
-        // Verify city belongs to province
         $cityBelongsToProvince = \DB::table('cities')
             ->where('id', $request->city_id)
             ->where('province_id', $request->province_id)
@@ -91,25 +66,17 @@ class AddressController extends Controller
 
         if (!$cityBelongsToProvince) {
             return response()->json([
-                'message' => 'Selected city does not belong to the selected province'
+                'message' => 'شهر انتخاب شده متعلق به استان انتخاب شده نیست.'
             ], 422);
         }
 
         $address = $request->user()->addresses()->findOrFail($id);
+        $address->update($request->validated());
 
-        $address->update([
-            'title' => $request->title,
-            'province_id' => $request->province_id,
-            'city_id' => $request->city_id,
-            'district' => $request->district,
-            'postal_code' => $request->postal_code,
-            'address_line' => $request->address_line,
-        ]);
-
-        $address->load(['province', 'city']); // Load relationships
+        $address->load(['province', 'city']);
 
         return response()->json([
-            'message' => 'Address updated successfully',
+            'message' => 'آدرس با موفقیت به‌روزرسانی شد.',
             'address' => $address
         ]);
     }
@@ -121,7 +88,7 @@ class AddressController extends Controller
         $address->delete();
 
         return response()->json([
-            'message' => 'Address deleted successfully'
+            'message' => 'آدرس با موفقیت حذف شد.'
         ]);
     }
 }
