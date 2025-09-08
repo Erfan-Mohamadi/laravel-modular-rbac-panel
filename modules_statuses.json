@@ -11,5 +11,6 @@
     "Store": true,
     "Shipping": true,
     "User": true,
-    "Order": true
+    "Order": true,
+    "Payment": true
 }

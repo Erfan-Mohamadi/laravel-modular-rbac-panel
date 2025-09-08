@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('orders', function (Blueprint $table) {
@@ -22,13 +19,14 @@ return new class extends Migration
             $table->enum('status', ['new', 'wait_for_payment', 'in_progress', 'delivered', 'failed'])
                 ->default('new');
 
+            $table->foreignId('address_id')->nullable()->constrained('addresses'); // Keep for reference
+            $table->text('formatted_address'); // Store complete formatted address
+            $table->unsignedBigInteger('shipping_cost')->default(0);
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('orders');

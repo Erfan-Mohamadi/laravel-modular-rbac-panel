@@ -15,7 +15,7 @@ class Cart extends Model
     /**
      * The table associated with the model.
      */
-    protected $table = 'cart';
+    protected $table = 'carts';
 
     /**
      * The attributes that are mass assignable.

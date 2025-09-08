@@ -9,15 +9,24 @@ use Illuminate\Support\Facades\DB;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
 use Modules\Order\Models\Cart;
+use Modules\Order\Models\Invoice;
 use Modules\Order\Http\Requests\OrderStoreRequest;
 use Modules\Order\Http\Requests\OrderUpdateRequest;
 use Modules\Store\Models\Store;
 use Modules\Customer\Models\Address;
+use Modules\Payment\Services\PaymentService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class OrderController extends Controller
 {
+    protected PaymentService $paymentService;
+
+    public function __construct(PaymentService $paymentService)
+    {
+        $this->paymentService = $paymentService;
+    }
+
     /**
      * Get all orders for the authenticated customer.
      */
@@ -28,21 +37,29 @@ class OrderController extends Controller
 
             $orders = Order::with([
                 'orderItems.product:id,title,price',
-                'address.province'
+                'invoice.latestPayment'
             ])
                 ->where('customer_id', $customerId)
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
 
             $orders->getCollection()->transform(function ($order) {
-                $shippingCost = $order->calculateShippingCost();
                 return [
                     'order' => $order,
+                    'shipping_address' => $order->formatted_address,
                     'total_items' => $order->total_items,
+                    'payment_status' => $order->invoice ? [
+                        'invoice_status' => $order->invoice->status,
+                        'payment_info' => $order->invoice->latestPayment ? [
+                            'status' => $order->invoice->latestPayment->status,
+                            'tracking_code' => $order->invoice->latestPayment->tracing_code,
+                            'message' => $order->invoice->latestPayment->message,
+                        ] : null
+                    ] : null,
                     'summary' => [
-                        'subtotal' => $order->amount,
-                        'shipping_cost' => $shippingCost,
-                        'total' => $order->amount + $shippingCost
+                        'subtotal' => $order->subtotal,
+                        'shipping_cost' => $order->shipping_cost,
+                        'total' => $order->amount
                     ]
                 ];
             });
@@ -73,10 +90,10 @@ class OrderController extends Controller
             $shippingId = $validated['shipping_id'];
             $addressId = $validated['address_id'];
 
-            $address = Address::query()->findOrFail($addressId);
+            // Load address with relationships
+            $address = Address::with(['province', 'city'])->findOrFail($addressId);
 
             return DB::transaction(function () use ($customerId, $shippingId, $address) {
-
                 $cartItems = Cart::with('product')
                     ->where('customer_id', $customerId)
                     ->get();
@@ -87,10 +104,11 @@ class OrderController extends Controller
                         'message' => 'هیچ کالایی در سبد خرید یافت نشد.'
                     ], 400);
                 }
-                $totalproduct = 0;
-                $totalAmount = 0;
+
+                $subtotal = 0;
                 $orderItemsData = [];
 
+                // Validate and prepare order items
                 foreach ($cartItems as $cartItem) {
                     $store = Store::query()->where('product_id', $cartItem->product_id)->first();
                     if (!$store) {
@@ -113,7 +131,7 @@ class OrderController extends Controller
                     }
 
                     $itemTotal = $cartItem->product->price * $cartItem->quantity;
-                    $totalAmount += $itemTotal;
+                    $subtotal += $itemTotal;
 
                     $orderItemsData[] = [
                         'product_id' => $cartItem->product_id,
@@ -124,24 +142,27 @@ class OrderController extends Controller
                     ];
                 }
 
-                // Get shipping cost from province_shipping
+                // Calculate shipping cost
                 $provinceShipping = DB::table('province_shipping')
                     ->where('province_id', $address->province_id)
                     ->where('shipping_id', $shippingId)
                     ->first();
 
-                $shippingCost = $provinceShipping ? $provinceShipping->price : 0;
-                $totalproduct += $totalAmount;
-                $totalAmount += $shippingCost;
+                $shippingCost = $provinceShipping ? (int) $provinceShipping->price : 0;
+                $totalAmount = $subtotal + $shippingCost;
+
+                // Create order with formatted address snapshot
                 $order = Order::query()->create([
                     'customer_id' => $customerId,
                     'shipping_id' => $shippingId,
-                    'address_id' => $address->id,
+                    'address_id' => $address->id, // Keep for admin reference
+                    'formatted_address' => Order::formatAddress($address), // Store complete formatted address
                     'amount' => $totalAmount,
                     'shipping_cost' => $shippingCost,
-                    'status' => 'new'
+                    'status' => 'wait_for_payment' // Changed from 'new' to 'wait_for_payment'
                 ]);
 
+                // Create order items and update inventory
                 foreach ($orderItemsData as $itemData) {
                     OrderItem::query()->create([
                         'order_id' => $order->id,
@@ -154,9 +175,19 @@ class OrderController extends Controller
                     $itemData['cart_item']->delete();
                 }
 
+                // Create invoice for the order
+                $invoice = Invoice::create([
+                    'order_id' => $order->id,
+                    'amount' => $totalAmount,
+                    'status' => 'pending'
+                ]);
+
+                // Process payment
+                $paymentResult = $this->paymentService->processPayment($invoice);
+
                 $order->load([
                     'orderItems.product:id,title,price',
-                    'address.province'
+                    'invoice.latestPayment'
                 ]);
 
                 return response()->json([
@@ -164,9 +195,16 @@ class OrderController extends Controller
                     'message' => 'سفارش با موفقیت ایجاد شد.',
                     'data' => [
                         'order' => $order,
+                        'shipping_address' => $order->formatted_address,
                         'total_items' => $order->total_items,
+                        'payment_result' => $paymentResult,
+                        'invoice' => [
+                            'id' => $invoice->id,
+                            'status' => $invoice->status,
+                            'amount' => $invoice->amount
+                        ],
                         'summary' => [
-                            'subtotal' => $totalproduct,
+                            'subtotal' => $subtotal,
                             'shipping_cost' => $shippingCost,
                             'total' => $totalAmount
                         ]
@@ -196,31 +234,25 @@ class OrderController extends Controller
         try {
             $customerId = $request->user()->id;
 
-            $order = Order::with(['orderItems.product:id,title,price', 'address.province'])
+            $order = Order::with([
+                'orderItems.product:id,title,price',
+                'invoice.latestPayment'
+            ])
                 ->where('id', $id)
                 ->where('customer_id', $customerId)
                 ->firstOrFail();
-
-
-            // Calculate shipping cost safely
-            $shippingCost = 0;
-            if ($order->address && $order->shipping_id) {
-                $provinceShipping = DB::table('province_shipping')
-                    ->where('province_id', $order->address->province_id)
-                    ->where('shipping_id', $order->shipping_id)
-                    ->first();
-                $shippingCost = $provinceShipping ? $provinceShipping->price : 0;
-            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'سفارش با موفقیت بازیابی شد.',
                 'data' => [
                     'order' => $order,
+                    'shipping_address' => $order->formatted_address,
                     'total_items' => $order->total_items,
+                    'payment_status' => $order->invoice ? $this->paymentService->getPaymentStatus($order->invoice) : null,
                     'summary' => [
-                        'subtotal' => $order->amount - $shippingCost,
-                        'shipping_cost' => $shippingCost,
+                        'subtotal' => $order->subtotal,
+                        'shipping_cost' => $order->shipping_cost,
                         'total' => $order->amount
                     ]
                 ]
@@ -240,53 +272,29 @@ class OrderController extends Controller
         }
     }
 
-
-
     /**
-     * Update order status (mainly for admin or cancel by customer)
+     * Update order status
      */
     public function update(OrderUpdateRequest $request, int $id): JsonResponse
     {
         try {
             $validated = $request->validated();
             $customerId = $request->user()->id;
-            $newStatus = $validated['status'];
 
-            $order = Order::where('id', $id)
+            $order = Order::query()->where('id', $id)
                 ->where('customer_id', $customerId)
                 ->firstOrFail();
 
-            if (in_array($order->status, ['delivered', 'in_progress']) && $newStatus === 'failed') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'امکان لغو این سفارش وجود ندارد.'
-                ], 400);
-            }
+            $order->load([
+                'orderItems.product:id,title,price',
+                'invoice.latestPayment'
+            ]);
 
-            return DB::transaction(function () use ($order, $newStatus) {
-                $order->status = $newStatus;
-                $order->save();
-
-                if ($newStatus === 'failed') {
-                    foreach ($order->orderItems as $orderItem) {
-                        $store = Store::where('product_id', $orderItem->product_id)->first();
-                        if ($store) {
-                            $store->increment('balance', $orderItem->quantity);
-                        }
-                    }
-                }
-
-                $order->load([
-                    'orderItems.product:id,title,price',
-                    'address.province'
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'وضعیت سفارش با موفقیت به‌روزرسانی شد.',
-                    'data' => $order
-                ], 200);
-            });
+            return response()->json([
+                'success' => true,
+                'message' => 'سفارش با موفقیت دریافت شد.',
+                'data' => $order
+            ], 200);
 
         } catch (ModelNotFoundException) {
             return response()->json([
@@ -296,21 +304,95 @@ class OrderController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'به‌روزرسانی سفارش ناموفق بود.',
+                'message' => 'عملیات ناموفق بود.',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
     }
 
     /**
-     * Cancel an order (soft delete or status change)
+     * Retry payment for an order
+     */
+    public function retryPayment(Request $request, int $id): JsonResponse
+    {
+        try {
+            $customerId = $request->user()->id;
+
+            $order = Order::with('invoice')
+                ->where('id', $id)
+                ->where('customer_id', $customerId)
+                ->firstOrFail();
+
+            if (!$order->invoice) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'فاکتور برای این سفارش یافت نشد.'
+                ], 404);
+            }
+
+            if ($order->invoice->isPaid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'این سفارش قبلاً پرداخت شده است.'
+                ], 400);
+            }
+
+            if (!in_array($order->status, ['wait_for_payment', 'failed'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'امکان پرداخت مجدد برای این سفارش وجود ندارد.'
+                ], 400);
+            }
+
+            // Update order status to wait for payment
+            $order->update(['status' => 'wait_for_payment']);
+
+            // Reset invoice status to pending
+            $order->invoice->update(['status' => 'pending']);
+
+            // Process payment
+            $paymentResult = $this->paymentService->processPayment($order->invoice);
+
+            $order->refresh();
+            $order->load([
+                'orderItems.product:id,title,price',
+                'invoice.latestPayment'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'درخواست پرداخت مجدد با موفقیت پردازش شد.',
+                'data' => [
+                    'order' => $order,
+                    'payment_result' => $paymentResult,
+                    'payment_status' => $this->paymentService->getPaymentStatus($order->invoice)
+                ]
+            ], 200);
+
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'سفارش یافت نشد.'
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'پرداخت مجدد ناموفق بود.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel an order
      */
     public function destroy(Request $request, int $id): JsonResponse
     {
         try {
             $customerId = $request->user()->id;
 
-            $order = Order::where('id', $id)
+            $order = Order::with('invoice')
+                ->where('id', $id)
                 ->where('customer_id', $customerId)
                 ->firstOrFail();
 
@@ -321,12 +403,26 @@ class OrderController extends Controller
                 ], 400);
             }
 
+            // If order is paid, we shouldn't allow cancellation
+            if ($order->invoice && $order->invoice->isPaid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'امکان لغو سفارش پرداخت شده وجود ندارد.'
+                ], 400);
+            }
+
             return DB::transaction(function () use ($order) {
                 $order->status = 'failed';
                 $order->save();
 
+                // Mark invoice as failed if exists
+                if ($order->invoice) {
+                    $order->invoice->markAsFailed();
+                }
+
+                // Restore inventory
                 foreach ($order->orderItems as $orderItem) {
-                    $store = Store::where('product_id', $orderItem->product_id)->first();
+                    $store = Store::query()->where('product_id', $orderItem->product_id)->first();
                     if ($store) {
                         $store->increment('balance', $orderItem->quantity);
                     }
@@ -347,6 +443,53 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'لغو سفارش ناموفق بود.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get payment status for an order
+     */
+    public function paymentStatus(Request $request, int $id): JsonResponse
+    {
+        try {
+            $customerId = $request->user()->id;
+
+            $order = Order::with('invoice.latestPayment')
+                ->where('id', $id)
+                ->where('customer_id', $customerId)
+                ->firstOrFail();
+
+            if (!$order->invoice) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'فاکتور برای این سفارش یافت نشد.'
+                ], 404);
+            }
+
+            $paymentStatus = $this->paymentService->getPaymentStatus($order->invoice);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'وضعیت پرداخت با موفقیت دریافت شد.',
+                'data' => [
+                    'order_id' => $order->id,
+                    'invoice_id' => $order->invoice->id,
+                    'invoice_status' => $order->invoice->status,
+                    'payment_status' => $paymentStatus
+                ]
+            ], 200);
+
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'سفارش یافت نشد.'
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'دریافت وضعیت پرداخت ناموفق بود.',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
