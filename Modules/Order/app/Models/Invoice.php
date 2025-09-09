@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Payment\Models\Payment;
 
 class Invoice extends Model
 {
@@ -46,7 +47,7 @@ class Invoice extends Model
      */
     public function payments(): HasMany
     {
-        return $this->hasMany(\Modules\Payment\Models\Payment::class);
+        return $this->hasMany(Payment::class);
     }
 
     /**
@@ -54,7 +55,7 @@ class Invoice extends Model
      */
     public function latestPayment()
     {
-        return $this->hasOne(\Modules\Payment\Models\Payment::class)->latest();
+        return $this->hasOne(Payment::class)->latest();
     }
 
     /**

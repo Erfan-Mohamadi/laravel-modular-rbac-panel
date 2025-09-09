@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('Invoices', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained('Orders');
+            $table->foreignId('order_id')->constrained('orders');
             $table->unsignedBigInteger('amount');
             $table->enum('status', ['pending', 'failed', 'success'])->default('pending');
             $table->timestamps();

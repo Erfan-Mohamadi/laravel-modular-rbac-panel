@@ -28,7 +28,6 @@ class PaymentController extends Controller
         try {
             $invoice = Invoice::with('order')->findOrFail($invoiceId);
 
-            // Check if the invoice belongs to the authenticated user
             if ($invoice->order->customer_id !== $request->user()->id) {
                 return response()->json([
                     'success' => false,
@@ -36,7 +35,6 @@ class PaymentController extends Controller
                 ], 403);
             }
 
-            // Check if already paid
             if ($invoice->isPaid()) {
                 return response()->json([
                     'success' => false,
@@ -103,7 +101,6 @@ class PaymentController extends Controller
             $payment = Payment::with('invoice.order')
                 ->findOrFail($paymentId);
 
-            // Check if the payment belongs to the authenticated user
             if ($payment->invoice->order->customer_id !== $request->user()->id) {
                 return response()->json([
                     'success' => false,
@@ -181,44 +178,43 @@ class PaymentController extends Controller
             $transactionId = $request->transaction_id;
             $status = $request->status;
 
-            $payment = Payment::where('transaction_id', $transactionId)->first();
+            $payment = Payment::query()->where('transaction_id', $transactionId)->first();
 
             if (!$payment) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Payment not found'
+                    'message' => 'پرداخت یافت نشد'
                 ], 404);
             }
 
-            // If payment is already processed, skip
             if ($payment->isSuccessful() || $payment->invoice->isPaid()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Payment already processed'
+                    'message' => 'پرداخت قبلاً پردازش شده است'
                 ], 200);
             }
 
             if ($status === 'success') {
                 $payment->markAsSuccess(
                     $request->tracking_code,
-                    $request->message ?? 'Payment completed successfully via webhook'
+                    $request->message ?? 'پرداخت از طریق وب هوک با موفقیت انجام شد'
                 );
                 $payment->invoice->markAsSuccess();
                 $payment->invoice->order->updateStatusBasedOnPayment();
             } else {
-                $payment->markAsFailed($request->message ?? 'Payment failed via webhook');
+                $payment->markAsFailed($request->message ?? 'پرداخت از طریق وب هوک ناموفق بود');
                 $payment->invoice->markAsFailed();
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Webhook processed successfully'
+                'message' => 'وب‌هوک با موفقیت پردازش شد'
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Webhook processing failed',
+                'message' => 'پردازش وب هوک ناموفق بود',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }

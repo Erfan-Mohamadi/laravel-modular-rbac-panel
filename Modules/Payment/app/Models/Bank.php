@@ -11,7 +11,7 @@ class Bank extends Model
      */
     public static function generateTransactionId(): int
     {
-        return rand(1000000000, 9999999999); // 10-digit random number
+        return rand(1000000000, 9999999999);
     }
 
     /**
@@ -19,17 +19,15 @@ class Bank extends Model
      */
     public static function generateTrackingCode(): int
     {
-        return rand(100000000000, 999999999999); // 12-digit random number
+        return rand(100000000000, 999999999999);
     }
 
     /**
      * Simulate payment processing.
-     * Returns array with success status, tracking code, and message.
      */
     public static function processPayment(int $amount): array
     {
-        // Simulate 80% success rate
-        $isSuccess = rand(1, 100) <= 80;
+        $isSuccess = rand(1, 100) <= 90;
 
         if ($isSuccess) {
             return [
@@ -61,10 +59,7 @@ class Bank extends Model
      */
     public static function verifyPayment(int $transactionId): array
     {
-        // Simulate verification process
-        // In real implementation, this would call bank API to verify transaction
-
-        $isVerified = rand(1, 100) <= 85; // 85% verification success rate
+        $isVerified = rand(1, 100) <= 90;
 
         if ($isVerified) {
             return [

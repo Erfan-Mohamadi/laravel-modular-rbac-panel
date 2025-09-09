@@ -5,6 +5,7 @@ namespace Modules\Payment\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Order\Models\Invoice;
 
 class Payment extends Model
 {
@@ -13,7 +14,7 @@ class Payment extends Model
     /**
      * The table associated with the model.
      */
-    protected $table = 'Payments';
+    protected $table = 'payments';
 
     /**
      * The attributes that are mass assignable.
@@ -44,7 +45,7 @@ class Payment extends Model
      */
     public function invoice(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Order\Models\Invoice::class);
+        return $this->belongsTo(Invoice::class);
     }
 
     /**
@@ -66,7 +67,7 @@ class Payment extends Model
     /**
      * Mark payment as successful.
      */
-    public function markAsSuccess(string $tracingCode = null, string $message = 'Payment completed successfully'): void
+    public function markAsSuccess(string $tracingCode = null, string $message = 'پرداخت با موفقیت انجام شد.'): void
     {
         $this->update([
             'status' => true,
@@ -79,7 +80,7 @@ class Payment extends Model
     /**
      * Mark payment as failed.
      */
-    public function markAsFailed(string $message = 'Payment failed'): void
+    public function markAsFailed(string $message = 'پرداخت ناموفق بود.'): void
     {
         $this->update([
             'status' => false,

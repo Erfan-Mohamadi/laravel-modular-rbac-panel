@@ -17,28 +17,22 @@ class PaymentService
     {
         try {
             return DB::transaction(function () use ($invoice) {
-                // Generate transaction ID
                 $transactionId = Bank::generateTransactionId();
 
-                // Create payment record
-                $payment = Payment::create([
+                $payment = Payment::query()->create([
                     'invoice_id' => $invoice->id,
                     'amount' => $invoice->amount,
                     'transaction_id' => $transactionId,
-                    'status' => false, // Default to failed, will be updated if successful
+                    'status' => false,
                     'driver' => 'pending',
                     'message' => 'در حال پردازش...',
                 ]);
 
-                // Simulate bank payment processing
                 $bankResponse = Bank::processPayment($invoice->amount);
 
                 if ($bankResponse['success']) {
-                    // Payment successful
                     $payment->markAsSuccess($bankResponse['tracking_code'], $bankResponse['message']);
                     $invoice->markAsSuccess();
-
-                    // Update order status
                     $invoice->order->updateStatusBasedOnPayment();
 
                     return [
@@ -53,10 +47,8 @@ class PaymentService
                         ]
                     ];
                 } else {
-                    // Payment failed
                     $payment->markAsFailed($bankResponse['message']);
                     $invoice->markAsFailed();
-
                     return [
                         'success' => false,
                         'message' => 'پرداخت ناموفق بود.',
@@ -85,7 +77,7 @@ class PaymentService
     public function verifyPayment(int $transactionId): array
     {
         try {
-            $payment = Payment::where('transaction_id', $transactionId)->first();
+            $payment = Payment::query()->where('transaction_id', $transactionId)->first();
 
             if (!$payment) {
                 return [
@@ -94,7 +86,6 @@ class PaymentService
                 ];
             }
 
-            // If already processed, return current status
             if ($payment->isSuccessful() || $payment->invoice->isPaid()) {
                 return [
                     'success' => true,

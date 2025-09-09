@@ -155,11 +155,11 @@ class OrderController extends Controller
                 $order = Order::query()->create([
                     'customer_id' => $customerId,
                     'shipping_id' => $shippingId,
-                    'address_id' => $address->id, // Keep for admin reference
-                    'formatted_address' => Order::formatAddress($address), // Store complete formatted address
+                    'address_id' => $address->id,
+                    'formatted_address' => Order::formatAddress($address),
                     'amount' => $totalAmount,
                     'shipping_cost' => $shippingCost,
-                    'status' => 'wait_for_payment' // Changed from 'new' to 'wait_for_payment'
+                    'status' => 'wait_for_payment'
                 ]);
 
                 // Create order items and update inventory
@@ -176,13 +176,12 @@ class OrderController extends Controller
                 }
 
                 // Create invoice for the order
-                $invoice = Invoice::create([
+                $invoice = Invoice::query()->create([
                     'order_id' => $order->id,
                     'amount' => $totalAmount,
                     'status' => 'pending'
                 ]);
 
-                // Process payment
                 $paymentResult = $this->paymentService->processPayment($invoice);
 
                 $order->load([
@@ -403,7 +402,6 @@ class OrderController extends Controller
                 ], 400);
             }
 
-            // If order is paid, we shouldn't allow cancellation
             if ($order->invoice && $order->invoice->isPaid()) {
                 return response()->json([
                     'success' => false,
@@ -415,12 +413,10 @@ class OrderController extends Controller
                 $order->status = 'failed';
                 $order->save();
 
-                // Mark invoice as failed if exists
                 if ($order->invoice) {
                     $order->invoice->markAsFailed();
                 }
 
-                // Restore inventory
                 foreach ($order->orderItems as $orderItem) {
                     $store = Store::query()->where('product_id', $orderItem->product_id)->first();
                     if ($store) {

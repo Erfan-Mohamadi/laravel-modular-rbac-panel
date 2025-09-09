@@ -32,7 +32,8 @@ Route::prefix('customer')->middleware('auth:sanctum')->group(function () {
     Route::get('orders/{id}', [OrderController::class, 'show']);
     Route::put('orders/{id}', [OrderController::class, 'update']);
     Route::delete('orders/{id}', [OrderController::class, 'destroy']);
-
+    Route::post('orders/{id}/retry-payment', [OrderController::class, 'retryPayment']);
+    Route::get('orders/{id}/payment-status', [OrderController::class, 'paymentStatus']);
     /*
     |--------------------------------------------------------------------------
     | Additional Order Routes
