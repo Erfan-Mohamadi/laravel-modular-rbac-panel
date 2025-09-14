@@ -129,13 +129,34 @@
                     </ul>
                 </li>
                 <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon bi-person-bounding-box"></i>
+                        <p>
+                            مشتری‌ها و سفارشات
+                            <i class="nav-arrow bi bi-chevron-right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview" role="navigation" aria-label="Products Navigation">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('customers.index') }}">
+                                <i class="nav-icon  bi-people"></i>
+                                <p>مدیریت مشتری‌ها</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('orders.index') }}">
+                                <i class="nav-icon  bi-people"></i>
+                                <p>مدیریت سفارشات</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('stores.index') }}" class="nav-link">
                         <i class="nav-icon bi bi-speedometer"></i>
                         <p>انبار</p>
                     </a>
                 </li>
-
-
             </ul>
             <!--end::Sidebar Menu-->
         </nav>

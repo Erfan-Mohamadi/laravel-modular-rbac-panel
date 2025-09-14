@@ -4,53 +4,50 @@ namespace Modules\Customer\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Customer\Models\Customer;
+use Illuminate\Support\Facades\Cache;
 
 class CustomerController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of customers.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return view('customer::index');
+        // Collect filter inputs
+        $filters = [
+            'name'   => $request->get('name'),
+            'email'  => $request->get('email'),
+            'mobile' => $request->get('mobile'),
+            'status' => $request->get('status'),
+        ];
+
+        $page = $request->get('page', 1);
+
+        $cacheKey = 'customers_list_' . md5(json_encode($filters) . "_page_{$page}");
+
+        $customers = Cache::remember($cacheKey, 60 * 5, function () use ($filters) { // cache 5 minutes
+            $query = Customer::query()->select('id', 'name', 'email', 'mobile', 'status', 'created_at');
+
+            if ($filters['name']) {
+                $query->where('name', 'like', "%{$filters['name']}%");
+            }
+
+            if ($filters['email']) {
+                $query->where('email', 'like', "%{$filters['email']}%");
+            }
+
+            if ($filters['mobile']) {
+                $query->where('mobile', 'like', "%{$filters['mobile']}%");
+            }
+
+            if (!is_null($filters['status']) && $filters['status'] !== '') {
+                $query->where('status', $filters['status']);
+            }
+
+            return $query->latest('id')->paginate(15)->withQueryString();
+        });
+
+        return view('customer::admin.customer.index', compact('customers', 'filters'));
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        return view('customer::create');
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
-    {
-        return view('customer::show');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        return view('customer::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
 }

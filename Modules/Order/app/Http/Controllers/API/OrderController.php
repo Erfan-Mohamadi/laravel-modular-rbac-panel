@@ -26,7 +26,7 @@ class OrderController extends Controller
     {
         $this->paymentService = $paymentService;
     }
-
+    //@todo making shipping cost calculated with weight of product
     /**
      * Get all orders for the authenticated customer.
      */
