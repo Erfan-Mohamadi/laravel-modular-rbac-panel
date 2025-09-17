@@ -80,7 +80,6 @@ php artisan serve
 This project includes a complete **Customer API** for authentication, profile, address, cart, order, and payment management. You can import the Postman collection to quickly test all endpoints:
 
 [Download Postman Collection](postman/Customer%20API.postman_collection.json)
-[![Run in Postman](https://run.pstmn.io/button.svg)](https://www.postman.com/collections/b793b2d6-c55d-4782-8f20-970552798e1a)
 
 ### 🔹 Base URL
 
