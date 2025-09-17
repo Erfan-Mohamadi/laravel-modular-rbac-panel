@@ -46,7 +46,6 @@ class AuthController extends Controller
             'customer_id' => (int) $request->customer_id
         ]);
 
-
         $request->validate([
             'customer_id' => 'required|integer|exists:customers,id',
             'otp' => 'required|string|size:6',
@@ -75,6 +74,11 @@ class AuthController extends Controller
             'otp_expires_at' => null,
         ]);
 
+        // 🔹 Create wallet after registration
+        if (!$customer->wallet) {
+            $customer->wallet()->create(['balance' => 0]);
+        }
+
         $token = $customer->createToken('customer-token')->plainTextToken;
 
         return response()->json([
@@ -83,6 +87,7 @@ class AuthController extends Controller
             'customer' => $customer
         ]);
     }
+
 
 
     // Resend OTP

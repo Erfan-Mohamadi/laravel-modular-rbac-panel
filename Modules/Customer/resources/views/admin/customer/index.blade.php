@@ -20,11 +20,11 @@
                     {{-- Filters --}}
                     <form method="GET" class="mb-3">
                         <div class="row g-2 align-items-center">
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <input type="text" name="name" class="form-control" placeholder="نام"
                                        value="{{ $filters['name'] ?? '' }}">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <input type="email" name="email" class="form-control" placeholder="ایمیل"
                                        value="{{ $filters['email'] ?? '' }}">
                             </div>
@@ -37,6 +37,12 @@
                                     <option value="">همه وضعیت‌ها</option>
                                     <option value="1" {{ isset($filters['status']) && $filters['status'] == 1 ? 'selected' : '' }}>فعال</option>
                                     <option value="0" {{ isset($filters['status']) && $filters['status'] == 0 ? 'selected' : '' }}>غیرفعال</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select name="trashed" class="form-control">
+                                    <option value="">همه مشتری‌ها</option>
+                                    <option value="1" {{ request('trashed') == 1 ? 'selected' : '' }}>حذف شده</option>
                                 </select>
                             </div>
                             <div class="col-md-2 d-flex gap-2">
@@ -56,11 +62,12 @@
                             <th>موبایل</th>
                             <th>وضعیت</th>
                             <th>تاریخ ثبت</th>
+                            <th>عملیات</th>
                         </tr>
                         </thead>
                         <tbody>
                         @forelse($customers as $customer)
-                            <tr>
+                            <tr @if($customer->trashed()) class="table-danger" @endif>
                                 <td>{{ $loop->iteration + ($customers->currentPage() - 1) * $customers->perPage() }}</td>
                                 <td>{{ $customer->name ?? '-' }}</td>
                                 <td>{{ $customer->email ?? '-' }}</td>
@@ -73,10 +80,26 @@
                                     @endif
                                 </td>
                                 <td>{{ verta($customer->created_at)->format('Y/m/d') }}</td>
+                                <td>
+                                    @if($customer->trashed())
+                                        {{-- Restore button --}}
+                                        <form action="{{ route('customers.restore', $customer->id) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success">بازیابی</button>
+                                        </form>
+                                    @else
+                                        {{-- Delete button --}}
+                                        <form action="{{ route('customers.destroy', $customer->id) }}" method="POST" id="delete-{{ $customer->id }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="confirmAction('delete-{{ $customer->id }}', 'حذف')">حذف</button>
+                                        </form>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center">هیچ مشتری‌ای یافت نشد</td>
+                                <td colspan="7" class="text-center">هیچ مشتری‌ای یافت نشد</td>
                             </tr>
                         @endforelse
                         </tbody>
@@ -92,25 +115,23 @@
 
         </div>
     </div>
-@endsection
-
-@push('scripts')
     <script>
-        function confirmDelete(formId) {
+        function confirmAction(formId, actionName) {
             Swal.fire({
-                title: 'آیا مطمئن هستید؟',
+                title: `آیا مطمئن هستید برای ${actionName}؟`,
                 text: "این عمل قابل بازگشت نیست!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'بله، حذف شود',
+                confirmButtonText: 'بله، ادامه دهید',
                 cancelButtonText: 'انصراف'
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.getElementById(formId).submit();
                 }
-            })
+            });
         }
     </script>
-@endpush
+@endsection
+

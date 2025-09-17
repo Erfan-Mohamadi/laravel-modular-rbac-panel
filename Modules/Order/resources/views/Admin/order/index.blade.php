@@ -13,8 +13,6 @@
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">لیست سفارشات</h3>
-                    <a href="{{ route('orders.export') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}"
-                       class="btn btn-success btn-sm"><i class="fas fa-download"></i> خروجی CSV</a>
                 </div>
 
                 <div class="card-body">
@@ -68,9 +66,10 @@
                             <tbody>
                             @forelse($orders as $order)
                                 <tr>
-                                    <td>{{ $loop->iteration }}</td>                                    <td>
-                                        <strong>{{ $order->customer->name ?? 'نامشخص' }}</strong><br>
-                                        <small>{{ $order->customer->email ?? '' }}</small><br>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>
+                                        <strong>{{ $order->customer->name ?? 'نامشخص' }}</strong>
+                                        |
                                         <small>{{ $order->customer->mobile ?? '' }}</small>
                                     </td>
                                     <td>{{ $order->total_items }} قلم</td>
@@ -104,7 +103,8 @@
                                     </td>
                                     <td>{{ $order->created_at->format('Y/m/d H:i') }}</td>
                                     <td>
-                                        <a href="{{ route('orders.show', $order->id) }}" class="btn btn-sm btn-outline-primary" title="جزئیات"><i class="fas fa-eye"></i></a>
+                                        <a href="{{ route('orders.show', $order->id) }}" class="btn btn-sm btn-outline-primary" title="جزئیات">
+                                            <i class="bi bi-pencil-square"> جزئیات </i></a>
                                     </td>
                                 </tr>
                             @empty

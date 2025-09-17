@@ -14,20 +14,25 @@ class CustomerController extends Controller
      */
     public function index(Request $request)
     {
-        // Collect filter inputs
         $filters = [
             'name'   => $request->get('name'),
             'email'  => $request->get('email'),
             'mobile' => $request->get('mobile'),
             'status' => $request->get('status'),
+            'trashed'=> $request->get('trashed'),
         ];
 
         $page = $request->get('page', 1);
 
         $cacheKey = 'customers_list_' . md5(json_encode($filters) . "_page_{$page}");
 
-        $customers = Cache::remember($cacheKey, 60 * 5, function () use ($filters) { // cache 5 minutes
-            $query = Customer::query()->select('id', 'name', 'email', 'mobile', 'status', 'created_at');
+        $customers = Cache::remember($cacheKey, 30, function () use ($filters) {
+            $query = Customer::query()->select('id', 'name', 'email', 'mobile', 'status', 'created_at', 'deleted_at');
+
+            // Include trashed customers if requested
+            if (!empty($filters['trashed']) && $filters['trashed'] == 1) {
+                $query->onlyTrashed();
+            }
 
             if ($filters['name']) {
                 $query->where('name', 'like', "%{$filters['name']}%");
@@ -49,5 +54,32 @@ class CustomerController extends Controller
         });
 
         return view('customer::admin.customer.index', compact('customers', 'filters'));
+    }
+
+
+    /**
+     * Soft delete a customer.
+     */
+    public function destroy($id)
+    {
+        $customer = Customer::findOrFail($id);
+        $customer->delete();
+
+        Cache::flush();
+
+        return redirect()->route('customers.index')->with('success', 'مشتری با موفقیت حذف شد.');
+    }
+
+    /**
+     * Restore a soft-deleted customer.
+     */
+    public function restore($id)
+    {
+        $customer = Customer::withTrashed()->findOrFail($id);
+        $customer->restore();
+
+        Cache::flush();
+
+        return redirect()->route('customers.index')->with('success', 'مشتری با موفقیت بازیابی شد.');
     }
 }

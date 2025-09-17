@@ -9,6 +9,9 @@ use Modules\Customer\Http\Controllers\Admin\CustomerController;
 |--------------------------------------------------------------------------
 */
 
+
 Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
+
+    Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
     Route::resource('customers', CustomerController::class)->names('customers');
 });

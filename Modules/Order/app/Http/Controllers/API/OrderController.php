@@ -26,7 +26,7 @@ class OrderController extends Controller
     {
         $this->paymentService = $paymentService;
     }
-    //@todo making shipping cost calculated with weight of product
+
     /**
      * Get all orders for the authenticated customer.
      */
@@ -36,7 +36,7 @@ class OrderController extends Controller
             $customerId = $request->user()->id;
 
             $orders = Order::with([
-                'orderItems.product:id,title,price',
+                'orderItems.product:id,title,price,weight',
                 'invoice.latestPayment'
             ])
                 ->where('customer_id', $customerId)
@@ -48,6 +48,7 @@ class OrderController extends Controller
                     'order' => $order,
                     'shipping_address' => $order->formatted_address,
                     'total_items' => $order->total_items,
+                    'total_weight' => $order->total_weight,
                     'payment_status' => $order->invoice ? [
                         'invoice_status' => $order->invoice->status,
                         'payment_info' => $order->invoice->latestPayment ? [
@@ -94,7 +95,8 @@ class OrderController extends Controller
             $address = Address::with(['province', 'city'])->findOrFail($addressId);
 
             return DB::transaction(function () use ($customerId, $shippingId, $address) {
-                $cartItems = Cart::with('product')
+                // Load cart items with product weight information
+                $cartItems = Cart::with(['product:id,title,price,weight'])
                     ->where('customer_id', $customerId)
                     ->get();
 
@@ -110,45 +112,52 @@ class OrderController extends Controller
 
                 // Validate and prepare order items
                 foreach ($cartItems as $cartItem) {
+                    $product = $cartItem->product;
+
                     $store = Store::query()->where('product_id', $cartItem->product_id)->first();
                     if (!$store) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'رکورد فروشگاه برای محصول ' . $cartItem->product->title . ' یافت نشد.'
+                            'message' => 'رکورد فروشگاه برای محصول ' . $product->title . ' یافت نشد.'
                         ], 404);
                     }
 
                     if ($store->balance < $cartItem->quantity) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'موجودی کافی برای محصول ' . $cartItem->product->title . ' موجود نیست.',
+                            'message' => 'موجودی کافی برای محصول ' . $product->title . ' موجود نیست.',
                             'data' => [
-                                'product' => $cartItem->product->title,
+                                'product' => $product->title,
                                 'available_stock' => $store->balance,
                                 'requested_quantity' => $cartItem->quantity
                             ]
                         ], 400);
                     }
 
-                    $itemTotal = $cartItem->product->price * $cartItem->quantity;
+                    // Validate product weight
+                    if (!$product->weight || $product->weight <= 0) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'وزن محصول ' . $product->title . ' تعریف نشده است.'
+                        ], 400);
+                    }
+
+                    $itemTotal = $product->price * $cartItem->quantity;
                     $subtotal += $itemTotal;
 
                     $orderItemsData[] = [
                         'product_id' => $cartItem->product_id,
                         'quantity' => $cartItem->quantity,
-                        'price' => $cartItem->product->price,
+                        'price' => $product->price,
+                        'weight' => $product->weight,
                         'store' => $store,
                         'cart_item' => $cartItem
                     ];
                 }
 
-                // Calculate shipping cost
-                $provinceShipping = DB::table('province_shipping')
-                    ->where('province_id', $address->province_id)
-                    ->where('shipping_id', $shippingId)
-                    ->first();
-
-                $shippingCost = $provinceShipping ? (int) $provinceShipping->price : 0;
+                // Calculate weight-based shipping cost
+                $shippingCalculation = $this->calculateWeightBasedShipping($orderItemsData, $address->province_id, $shippingId);
+                $shippingCost = $shippingCalculation['cost'];
                 $totalAmount = $subtotal + $shippingCost;
 
                 // Create order with formatted address snapshot
@@ -159,6 +168,7 @@ class OrderController extends Controller
                     'formatted_address' => Order::formatAddress($address),
                     'amount' => $totalAmount,
                     'shipping_cost' => $shippingCost,
+                    'total_weight' => $shippingCalculation['total_weight'],
                     'status' => 'wait_for_payment'
                 ]);
 
@@ -168,7 +178,8 @@ class OrderController extends Controller
                         'order_id' => $order->id,
                         'product_id' => $itemData['product_id'],
                         'quantity' => $itemData['quantity'],
-                        'price' => $itemData['price']
+                        'price' => $itemData['price'],
+                        'weight' => $itemData['weight']
                     ]);
 
                     $itemData['store']->decrement('balance', $itemData['quantity']);
@@ -185,7 +196,7 @@ class OrderController extends Controller
                 $paymentResult = $this->paymentService->processPayment($invoice);
 
                 $order->load([
-                    'orderItems.product:id,title,price',
+                    'orderItems.product:id,title,price,weight',
                     'invoice.latestPayment'
                 ]);
 
@@ -202,9 +213,12 @@ class OrderController extends Controller
                             'status' => $invoice->status,
                             'amount' => $invoice->amount
                         ],
+                        'weight_info' => $shippingCalculation['breakdown'],
                         'summary' => [
                             'subtotal' => $subtotal,
                             'shipping_cost' => $shippingCost,
+                            'total_weight_grams' => $shippingCalculation['total_weight'],
+                            'shipping_units_100g' => $shippingCalculation['shipping_units'],
                             'total' => $totalAmount
                         ]
                     ]
@@ -234,7 +248,7 @@ class OrderController extends Controller
             $customerId = $request->user()->id;
 
             $order = Order::with([
-                'orderItems.product:id,title,price',
+                'orderItems.product:id,title,price,weight',
                 'invoice.latestPayment'
             ])
                 ->where('id', $id)
@@ -248,7 +262,9 @@ class OrderController extends Controller
                     'order' => $order,
                     'shipping_address' => $order->formatted_address,
                     'total_items' => $order->total_items,
+                    'total_weight' => $order->total_weight ?? $this->calculateOrderWeight($order),
                     'payment_status' => $order->invoice ? $this->paymentService->getPaymentStatus($order->invoice) : null,
+                    'weight_breakdown' => $this->getOrderWeightBreakdown($order),
                     'summary' => [
                         'subtotal' => $order->subtotal,
                         'shipping_cost' => $order->shipping_cost,
@@ -284,14 +300,20 @@ class OrderController extends Controller
                 ->where('customer_id', $customerId)
                 ->firstOrFail();
 
+            // Only allow certain status updates by customer
+            $allowedStatuses = ['cancelled']; // Add more if needed
+            if (isset($validated['status']) && in_array($validated['status'], $allowedStatuses)) {
+                $order->update(['status' => $validated['status']]);
+            }
+
             $order->load([
-                'orderItems.product:id,title,price',
+                'orderItems.product:id,title,price,weight',
                 'invoice.latestPayment'
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'سفارش با موفقیت دریافت شد.',
+                'message' => 'سفارش با موفقیت به‌روزرسانی شد.',
                 'data' => $order
             ], 200);
 
@@ -303,7 +325,7 @@ class OrderController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'عملیات ناموفق بود.',
+                'message' => 'به‌روزرسانی سفارش ناموفق بود.',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
@@ -354,7 +376,7 @@ class OrderController extends Controller
 
             $order->refresh();
             $order->load([
-                'orderItems.product:id,title,price',
+                'orderItems.product:id,title,price,weight',
                 'invoice.latestPayment'
             ]);
 
@@ -410,13 +432,14 @@ class OrderController extends Controller
             }
 
             return DB::transaction(function () use ($order) {
-                $order->status = 'failed';
+                $order->status = 'cancelled';
                 $order->save();
 
                 if ($order->invoice) {
                     $order->invoice->markAsFailed();
                 }
 
+                // Restore inventory
                 foreach ($order->orderItems as $orderItem) {
                     $store = Store::query()->where('product_id', $orderItem->product_id)->first();
                     if ($store) {
@@ -489,5 +512,184 @@ class OrderController extends Controller
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
+    }
+
+    /**
+     * Calculate shipping estimate before placing order
+     */
+    public function calculateShippingEstimate(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'address_id' => 'required|integer|exists:addresses,id',
+                'shipping_id' => 'required|integer'
+            ]);
+
+            $customerId = $request->user()->id;
+            $addressId = $request->input('address_id');
+            $shippingId = $request->input('shipping_id');
+
+            // Load address
+            $address = Address::with(['province', 'city'])->findOrFail($addressId);
+
+            // Load cart items
+            $cartItems = Cart::with(['product:id,title,price,weight'])
+                ->where('customer_id', $customerId)
+                ->get();
+
+            if ($cartItems->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'هیچ کالایی در سبد خرید یافت نشد.'
+                ], 400);
+            }
+
+            // Prepare order items data for calculation
+            $orderItemsData = [];
+            foreach ($cartItems as $cartItem) {
+                $product = $cartItem->product;
+
+                if (!$product->weight || $product->weight <= 0) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'وزن محصول ' . $product->title . ' تعریف نشده است.'
+                    ], 400);
+                }
+
+                $orderItemsData[] = [
+                    'product_id' => $cartItem->product_id,
+                    'quantity' => $cartItem->quantity,
+                    'price' => $product->price,
+                    'weight' => $product->weight
+                ];
+            }
+
+            // Calculate shipping
+            $shippingCalculation = $this->calculateWeightBasedShipping($orderItemsData, $address->province_id, $shippingId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'هزینه حمل و نقل محاسبه شد.',
+                'data' => [
+                    'shipping_cost' => $shippingCalculation['cost'],
+                    'total_weight_grams' => $shippingCalculation['total_weight'],
+                    'shipping_units_100g' => $shippingCalculation['shipping_units'],
+                    'weight_breakdown' => $shippingCalculation['breakdown']
+                ]
+            ], 200);
+
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'آدرس یافت نشد.'
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'محاسبه هزینه حمل و نقل ناموفق بود.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Calculate shipping cost based on total weight
+     */
+    private function calculateWeightBasedShipping(array $orderItemsData, int $provinceId, int $shippingId): array
+    {
+        // Get base shipping rate per 100g for this province and shipping method
+        $provinceShipping = DB::table('province_shipping')
+            ->where('province_id', $provinceId)
+            ->where('shipping_id', $shippingId)
+            ->first();
+
+        if (!$provinceShipping) {
+            return [
+                'cost' => 0,
+                'total_weight' => 0,
+                'shipping_units' => 0,
+                'breakdown' => []
+            ];
+        }
+
+        $basePricePer100g = (int) $provinceShipping->price;
+
+        // Calculate total weight and create breakdown
+        $totalWeightInGrams = 0;
+        $breakdown = [];
+
+        foreach ($orderItemsData as $item) {
+            $itemWeight = $item['weight']; // Weight per unit in grams
+            $itemTotalWeight = $itemWeight * $item['quantity'];
+            $totalWeightInGrams += $itemTotalWeight;
+
+            $breakdown[] = [
+                'product_id' => $item['product_id'],
+                'weight_per_unit_grams' => $itemWeight,
+                'quantity' => $item['quantity'],
+                'total_weight_grams' => $itemTotalWeight
+            ];
+        }
+
+        // Convert to 100g units and round up
+        $weight100gUnits = ceil($totalWeightInGrams / 100);
+
+        // Calculate final shipping cost
+        $shippingCost = $weight100gUnits * $basePricePer100g;
+
+        return [
+            'cost' => $shippingCost,
+            'total_weight' => $totalWeightInGrams,
+            'shipping_units' => $weight100gUnits,
+            'rate_per_100g' => $basePricePer100g,
+            'breakdown' => $breakdown
+        ];
+    }
+
+    /**
+     * Calculate total weight for an existing order
+     */
+    private function calculateOrderWeight(Order $order): int
+    {
+        $totalWeight = 0;
+
+        foreach ($order->orderItems as $orderItem) {
+            if ($orderItem->weight && $orderItem->weight > 0) {
+                $totalWeight += $orderItem->weight * $orderItem->quantity;
+            } elseif ($orderItem->product && $orderItem->product->weight > 0) {
+                $totalWeight += $orderItem->product->weight * $orderItem->quantity;
+            }
+        }
+
+        return $totalWeight;
+    }
+
+    /**
+     * Get weight breakdown for an existing order
+     */
+    private function getOrderWeightBreakdown(Order $order): array
+    {
+        $breakdown = [];
+        $totalWeight = 0;
+
+        foreach ($order->orderItems as $orderItem) {
+            $itemWeight = $orderItem->weight ?? ($orderItem->product->weight ?? 0);
+            $itemTotalWeight = $itemWeight * $orderItem->quantity;
+            $totalWeight += $itemTotalWeight;
+
+            $breakdown[] = [
+                'product_id' => $orderItem->product_id,
+                'product_title' => $orderItem->product->title ?? 'Unknown',
+                'weight_per_unit_grams' => $itemWeight,
+                'quantity' => $orderItem->quantity,
+                'total_weight_grams' => $itemTotalWeight
+            ];
+        }
+
+        return [
+            'items' => $breakdown,
+            'total_weight_grams' => $totalWeight,
+            'total_weight_100g_units' => ceil($totalWeight / 100)
+        ];
     }
 }

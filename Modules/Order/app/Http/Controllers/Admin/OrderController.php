@@ -9,6 +9,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Modules\Order\Models\Order;
 use Modules\Store\Models\Store;
+use Modules\Customer\Models\Wallet;
 use Exception;
 
 class OrderController extends Controller
@@ -44,7 +45,7 @@ class OrderController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $orders = $query->orderBy('created_at', 'desc')->paginate(20);
+        $orders = $query->orderBy('created_at', 'desc')->paginate(15);
 
         $statusOptions = [
             'new' => 'جدید',
@@ -113,6 +114,9 @@ class OrderController extends Controller
                         );
                         $store->increment('balance', $item->quantity);
                     }
+
+                    // Process wallet refund for cancelled paid orders
+                    $this->processWalletRefund($order, 'تغییر وضعیت سفارش به لغو شده');
                 }
 
                 if ($order->invoice && $newStatus === 'failed' && !$order->invoice->isPaid()) {
@@ -163,12 +167,15 @@ class OrderController extends Controller
                     $store->increment('balance', $item->quantity);
                 }
 
+                // Process wallet refund
+                $this->processWalletRefund($order, 'لغو سفارش');
+
                 if ($order->invoice && !$order->invoice->isPaid()) {
                     $order->invoice->markAsFailed();
                 }
             });
 
-            return redirect()->back()->with('success', 'سفارش با موفقیت لغو شد.');
+            return redirect()->back()->with('success', 'سفارش با موفقیت لغو شد و مبلغ به کیف پول مشتری بازگردانده شد.');
 
         } catch (Exception $e) {
             return redirect()->back()->with('error', 'خطا در لغو سفارش: ' . $e->getMessage());
@@ -191,6 +198,9 @@ class OrderController extends Controller
                         );
                         $store->increment('balance', $item->quantity);
                     }
+
+                    // Process wallet refund before deleting
+                    $this->processWalletRefund($order, 'حذف سفارش');
                 }
 
                 if ($order->invoice) {
@@ -202,7 +212,7 @@ class OrderController extends Controller
                 $order->delete();
             });
 
-            return redirect()->route('orders.index')->with('success', 'سفارش با موفقیت حذف شد.');
+            return redirect()->route('orders.index')->with('success', 'سفارش با موفقیت حذف شد و مبلغ به کیف پول مشتری بازگردانده شد.');
 
         } catch (Exception $e) {
             return redirect()->back()->with('error', 'خطا در حذف سفارش: ' . $e->getMessage());
@@ -210,55 +220,48 @@ class OrderController extends Controller
     }
 
     /**
-     * Export orders to CSV.
+     * Process wallet refund for cancelled/deleted orders.
      */
-    public function export(Request $request)
+    private function processWalletRefund(Order $order, string $description): void
     {
-        $query = Order::with(['customer', 'orderItems.product', 'invoice']);
-
-        if ($request->filled('status')) $query->where('status', $request->status);
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('customer', fn($q) => $q->where('name','like',"%{$search}%")
-                ->orWhere('email','like',"%{$search}%")
-                ->orWhere('mobile','like',"%{$search}%"));
+        // Only process refund if the order was paid
+        if (!$order->invoice || !$order->invoice->isPaid()) {
+            return;
         }
-        if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->date_from);
-        if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->date_to);
 
-        $orders = $query->orderBy('created_at','desc')->get();
+        // Get or create customer wallet
+        $wallet = Wallet::firstOrCreate(
+            ['customer_id' => $order->customer_id],
+            ['balance' => 0]
+        );
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="orders_export_' . date('Y-m-d_H-i-s') . '.csv"',
-        ];
+        // Calculate refund amount - try different possible field names
+        $refundAmount = $order->total_amount
+            ?? $order->total_price
+            ?? $order->amount
+            ?? $order->total
+            ?? 0;
 
-        return response()->stream(function() use ($orders) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            fputcsv($file, [
-                'شناسه سفارش', 'نام مشتری', 'ایمیل مشتری', 'تلفن مشتری',
-                'مبلغ کل', 'هزینه ارسال', 'وضعیت', 'وضعیت پرداخت',
-                'تاریخ ثبت سفارش','آدرس ارسال'
-            ]);
+        // Calculate from order items if total is still null/zero
+        if (!$refundAmount && $order->orderItems) {
+            $refundAmount = $order->orderItems->sum(function ($item) {
+                return $item->price * $item->quantity;
+            });
 
-            foreach ($orders as $order) {
-                fputcsv($file, [
-                    $order->id,
-                    $order->customer->name ?? '',
-                    $order->customer->email ?? '',
-                    $order->customer->mobile ?? '',
-                    number_format($order->amount),
-                    number_format($order->shipping_cost),
-                    $this->getStatusLabel($order->status),
-                    $order->invoice ? $this->getPaymentStatusLabel($order->invoice->status) : 'بدون فاکتور',
-                    $order->created_at->format('Y-m-d H:i:s'),
-                    $order->formatted_address
-                ]);
-            }
+            // Add shipping cost if available
+            $refundAmount += $order->shipping_cost ?? 0;
+        }
 
-            fclose($file);
-        }, 200, $headers);
+        // Only process refund if we have a valid amount
+        if ($refundAmount > 0) {
+            // Create refund transaction
+            $wallet->refund(
+                (int) $refundAmount,
+                $description . " - سفارش #{$order->id}",
+                Order::class,
+                $order->id
+            );
+        }
     }
 
     private function getStatusLabel(string $status): string
