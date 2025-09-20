@@ -20,10 +20,10 @@ class OrderStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'shipping_id' => 'required|integer|exists:shippings,id',
+            'shipping_id' => 'bail|required|integer|exists:shippings,id',
             'cart_items' => 'sometimes|array|min:1',
-            'cart_items.*.cart_id' => 'required_with:cart_items|integer|exists:cart,id',
-            'cart_items.*.quantity' => 'required_with:cart_items|integer|min:1',
+            'cart_items.*.cart_id' => 'bail|required_with:cart_items|integer|exists:cart,id',
+            'cart_items.*.quantity' => 'bIL|required_with:cart_items|integer|min:1',
             'address_id' => 'required|exists:addresses,id',
         ];
     }

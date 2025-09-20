@@ -14,15 +14,14 @@ class ProductStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
+            'title' => 'bail|required|string|max:255',
+            'price' => 'bail|required|numeric|min:0',
             'discount' => 'nullable|numeric|min:0|lt:price',
-            'availability_status' => 'required|in:coming_soon,available,unavailable',
+            'availability_status' => 'bail|required|in:coming_soon,available,unavailable',
             'status' => 'boolean',
             'description' => 'nullable|string',
-            'category_id' => 'nullable|exists:categories,id', // single category
+            'category_id' => 'nullable|exists:categories,id',
 
-            // Dynamic specialties
             'specialties' => 'nullable|array',
             'specialties.*' => 'exists:specialties,id',
             'specialty_values' => 'nullable|array',
@@ -33,7 +32,6 @@ class ProductStoreRequest extends FormRequest
 
             'initial_stock' => 'nullable|integer|min:0',
 
-            // Image validation rules
             'main_image' => 'nullable|image|mimes:jpeg,png,webp,jpg|max:2048',
             'gallery_images' => 'nullable|array',
             'gallery_images.*' => 'image|mimes:jpeg,png,webp,jpg|max:2048',

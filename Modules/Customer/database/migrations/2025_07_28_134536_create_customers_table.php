@@ -15,8 +15,8 @@ return new class extends Migration
             $table->string('mobile', 20)->unique();
             $table->timestamp('mobile_verified_at')->nullable();
             $table->string('password', 191)->nullable();
-            $table->string('otp', 6)->nullable(); // Add OTP field
-            $table->timestamp('otp_expires_at')->nullable(); // Add OTP expiry
+            $table->string('otp', 6)->nullable();
+            $table->timestamp('otp_expires_at')->nullable();
             $table->string('last_login_date', 191)->nullable();
             $table->boolean('status')->default(1);
             $table->rememberToken();

@@ -21,7 +21,6 @@ return new class extends Migration
             $table->unsignedInteger('quantity');
             $table->unsignedBigInteger('price');
 
-            // Virtual column (calculated on the fly, not stored)
             $table->unsignedBigInteger('total_price')->virtualAs('price * quantity');
 
             $table->timestamps();

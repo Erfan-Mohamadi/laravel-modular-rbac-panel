@@ -1,7 +1,10 @@
 @extends('core::layouts.master')
 
 @section('title', 'ایجاد دسته‌بندی جدید')
-
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('categories.index') }}">مدیریت دسته‌بندی‌ها</a></li>
+    <li class="breadcrumb-item active">ایجاد دسته‌بندی جدید</li>
+@endsection
 @section('content')
     <div class="container-fluid px-4">
         <h4 class="mb-4">ایجاد دسته‌بندی جدید</h4>
@@ -9,17 +12,6 @@
         @if(session('success'))
             <div class="alert alert-success">
                 {{ session('success') }}
-            </div>
-        @endif
-
-        @if ($errors->any())
-            <div class="alert alert-danger">
-                <strong>خطا!</strong> لطفاً خطاهای زیر را بررسی کنید:
-                <ul class="mb-0 mt-2">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
             </div>
         @endif
 

@@ -45,13 +45,3 @@ Route::prefix('customer')->middleware('auth:sanctum')->group(function () {
     // Get order statistics for customer
     Route::get('orders-statistics', [OrderController::class, 'getStatistics']);
 });
-
-/*
-|--------------------------------------------------------------------------
-| Alternative RESTful Resource Route (if you prefer)
-|--------------------------------------------------------------------------
-|
-| You can replace the individual order routes above with this single line:
-| Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
-|
-*/

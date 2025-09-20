@@ -4,11 +4,10 @@ namespace Modules\Area\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateCityRequest extends FormRequest
+class StoreCityRequest extends FormRequest
 {
     public function authorize()
     {
-        // Adjust if you want to check user permissions
         return true;
     }
 

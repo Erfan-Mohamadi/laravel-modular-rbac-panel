@@ -1,5 +1,4 @@
 <?php
-// Modules/Category/database/migrations/2025_08_16_create_category_product_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

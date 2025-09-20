@@ -44,11 +44,13 @@ class RoleController extends Controller
             'label' => $validated['label'] ?? null,
         ]);
 
+        // Check role name before any potential caching issues
         if (!empty($validated['permissions']) && $validated['name'] !== Role::SUPER_ADMIN) {
             $role->givePermissionTo($validated['permissions']);
         }
 
-        Role::clearCache();
+        // Clear all related caches
+        Role::clearAllCaches();
 
         return redirect()->route('roles.index')->with('success', 'نقش با موفقیت ثبت شد');
     }
@@ -58,13 +60,13 @@ class RoleController extends Controller
      */
     public function edit($id)
     {
-
-        $role = Role::findOrFail($id);
+        // Use fresh query instead of cached to ensure we get current data
+        $role = Role::with('permissions')->findOrFail($id);
         $permissions = Permission::cachedPermissions();
         $rolePermissions = $role->permissions->pluck('name')->toArray();
         $superAdminName = Role::SUPER_ADMIN;
 
-        return view('permission::admin.role.edit', compact('role', 'permissions', 'rolePermissions' , 'superAdminName'));
+        return view('permission::admin.role.edit', compact('role', 'permissions', 'rolePermissions', 'superAdminName'));
     }
 
     /**
@@ -72,20 +74,25 @@ class RoleController extends Controller
      */
     public function update(UpdateRoleRequest $request, $id)
     {
+        // Get fresh role instance (not from cache)
         $role = Role::findOrFail($id);
-
         $validated = $request->validated();
+
+        // Store the original name before update for comparison
+        $originalRoleName = $role->name;
 
         $role->update([
             'name' => $validated['name'],
             'label' => $validated['label'] ?? null,
         ]);
 
-        if ($role->name !== Role::SUPER_ADMIN) {
+        // Use original name for comparison, not the potentially cached one
+        if ($originalRoleName !== Role::SUPER_ADMIN && $validated['name'] !== Role::SUPER_ADMIN) {
             $role->syncPermissions($validated['permissions'] ?? []);
         }
 
-        Role::clearCache();
+        // Clear all related caches after operations
+        Role::clearAllCaches();
 
         return redirect()->route('roles.index')->with('success', 'نقش با موفقیت به‌روزرسانی شد');
     }
@@ -95,6 +102,7 @@ class RoleController extends Controller
      */
     public function destroy($id)
     {
+        // Get fresh role instance with users count
         $role = Role::withCount('users')->findOrFail($id);
 
         if ($role->name === Role::SUPER_ADMIN) {
@@ -106,7 +114,9 @@ class RoleController extends Controller
         }
 
         $role->delete();
-        Role::clearCache();
+
+        // Clear all related caches
+        Role::clearAllCaches();
 
         return redirect()->route('roles.index')->with('success', 'نقش با موفقیت حذف شد.');
     }

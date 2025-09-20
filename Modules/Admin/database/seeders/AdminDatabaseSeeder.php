@@ -19,8 +19,7 @@ class AdminDatabaseSeeder extends Seeder
             'role_id' => 1,
         ]);
 
-        // Give super admin all permissions
-        $permissions = Permission::all()->pluck('name'); // make sure permissions are seeded first
+        $permissions = Permission::all()->pluck('name');
         $superAdmin->givePermissionTo($permissions);
     }
 }

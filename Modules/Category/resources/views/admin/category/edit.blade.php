@@ -1,7 +1,10 @@
 @extends('core::layouts.master')
 
 @section('title', 'ویرایش دسته‌بندی')
-
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('categories.index') }}">مدیریت دسته‌بندی‌ها</a></li>
+    <li class="breadcrumb-item active">ویرایش دسته‌بندی</li>
+@endsection
 @section('content')
     <div class="container-fluid px-4">
         <h4 class="mb-4">ویرایش دسته‌بندی: {{ $category->name }}</h4>
@@ -11,18 +14,6 @@
                 {{ session('success') }}
             </div>
         @endif
-
-        @if ($errors->any())
-            <div class="alert alert-danger">
-                <strong>خطا!</strong> لطفاً خطاهای زیر را بررسی کنید:
-                <ul class="mb-0 mt-2">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
         <div class="card shadow-sm border-0">
             <div class="card-body">
                 <form action="{{ route('categories.update', $category) }}" method="POST" enctype="multipart/form-data">

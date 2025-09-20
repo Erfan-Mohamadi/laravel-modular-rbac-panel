@@ -24,7 +24,6 @@ class BrandUpdateRequest extends FormRequest
         $brandId = $this->route('brand')->id;
         $rules = [...$this->storeRequest->rules()];
 
-        // Override the name rule for update
         $rules['name'] = 'required|string|max:255|unique:brands,name,' . $brandId;
 
         return $rules;

@@ -2,11 +2,12 @@
 
 namespace Modules\Shipping\Http\Controllers\Admin;
 
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
 use Modules\Shipping\Models\Shipping;
 use Modules\Area\Models\Province;
+use Modules\Shipping\Http\Requests\StoreShippingRequest;
+use Modules\Shipping\Http\Requests\UpdateShippingRequest;
 
 class ShippingController extends Controller
 {
@@ -31,16 +32,8 @@ class ShippingController extends Controller
     /**
      * Store a newly created shipping in storage.
      */
-    public function store(Request $request)
+    public function store(StoreShippingRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:shipping,name',
-            'status' => 'boolean',
-            'icon' => 'nullable|image|mimes:png,jpeg,jpg,gif|max:2048',
-            'provinces.*.selected' => 'nullable|boolean',
-            'provinces.*.price' => 'nullable|required_with:provinces.*.selected|numeric|min:0',
-        ]);
-
         $data = [
             'name' => $request->name,
             'status' => $request->has('status') ? 1 : 0,
@@ -84,16 +77,8 @@ class ShippingController extends Controller
     /**
      * Update the specified shipping in storage.
      */
-    public function update(Request $request, Shipping $shipping)
+    public function update(UpdateShippingRequest $request, Shipping $shipping)
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:shipping,name,' . $shipping->id,
-            'status' => 'boolean',
-            'icon' => 'nullable|image|mimes:png,jpeg,jpg,gif|max:2048',
-            'provinces.*.selected' => 'nullable|boolean',
-            'provinces.*.price' => 'nullable|required_with:provinces.*.selected|numeric|min:0',
-        ]);
-
         $data = [
             'name' => $request->name,
             'status' => $request->has('status') ? 1 : 0,

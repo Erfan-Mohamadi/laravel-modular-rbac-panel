@@ -3,7 +3,9 @@
 namespace Modules\Admin\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Modules\Permission\Models\Role;
+use Modules\Admin\Models\Admin;
 
 class UpdateAdminRequest extends FormRequest
 {
@@ -14,21 +16,70 @@ class UpdateAdminRequest extends FormRequest
 
     public function rules()
     {
-        $adminId = $this->route('admin')->id; // get current admin id from route
+        // Get the admin being updated
+        $admin = $this->route('admin');
+        $adminId = $admin instanceof Admin ? $admin->id : $admin;
 
         return [
-            'name' => 'bail|required|string|max:255',
-            'mobile' => "bail|required|string|max:20|unique:admins,mobile,{$adminId}",
-            'role_id' => 'bail|required|exists:roles,id',
-            'status' => 'required|boolean',
-            'password' => 'nullable|string|min:8|confirmed',
+            'name' => [
+                'bail',
+                'required',
+                'string',
+                'max:255',
+            ],
+            'mobile' => [
+                'bail',
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('admins', 'mobile')->ignore($adminId),
+            ],
+            'role_id' => [
+                'bail',
+                'required',
+                'exists:roles,id',
+            ],
+            'status' => [
+                'required',
+                'boolean',
+            ],
+            'password' => [
+                'nullable',
+                'string',
+                'min:8',
+                'confirmed',
+            ],
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'name.required' => 'نام ادمین الزامی است.',
+            'name.string' => 'نام باید به صورت متن باشد.',
+            'name.max' => 'نام نمی‌تواند بیشتر از 255 کاراکتر باشد.',
+
+            'mobile.required' => 'شماره موبایل الزامی است.',
+            'mobile.string' => 'شماره موبایل باید به صورت متن باشد.',
+            'mobile.unique' => 'این شماره موبایل قبلاً ثبت شده است.',
+            'mobile.max' => 'شماره موبایل نمی‌تواند بیشتر از 20 کاراکتر باشد.',
+
+            'role_id.required' => 'انتخاب نقش الزامی است.',
+            'role_id.exists' => 'نقش انتخاب شده معتبر نیست.',
+
+            'status.required' => 'وضعیت الزامی است.',
+            'status.boolean' => 'وضعیت باید true یا false باشد.',
+
+            'password.string' => 'رمز عبور باید به صورت متن باشد.',
+            'password.min' => 'رمز عبور باید حداقل 8 کاراکتر باشد.',
+            'password.confirmed' => 'تکرار رمز عبور مطابقت ندارد.',
         ];
     }
 
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            $superAdminRoleId = Role::where('name', Role::SUPER_ADMIN)->value('id');
+            $superAdminRoleId = Role::query()->where('name', Role::SUPER_ADMIN)->value('id');
             if ($this->role_id == $superAdminRoleId) {
                 $validator->errors()->add('role_id', 'نمی‌توانید نقش مدیر کل را به این ادمین اختصاص دهید.');
             }

@@ -13,13 +13,24 @@ class UpdateRoleRequest extends FormRequest
 
     public function rules(): array
     {
-        $roleId = $this->route('id');
+        $roleId = $this->input('role_id');
 
-        return [
-            'name' => 'bail|required|string|unique:roles,name,' . $roleId,
-            'label' => 'nullable|string|max:255',
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,name',
-        ];
+        if (!$roleId) {
+            $segments = $this->segments();
+            $rolesIndex = array_search('roles', $segments);
+            if ($rolesIndex !== false && isset($segments[$rolesIndex + 1])) {
+                $roleId = $segments[$rolesIndex + 1];
+            }
+        }
+
+        $storeRequest = new StoreRoleRequest();
+        $rules = $storeRequest->rules();
+
+        if ($roleId) {
+            $rules['name'] = 'bail|required|string|unique:roles,name,' . $roleId;
+            $rules['role_id'] = 'required|exists:roles,id';
+        }
+
+        return $rules;
     }
 }

@@ -5,7 +5,7 @@ namespace Modules\Area\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Modules\Customer\Models\Address;
-use Modules\Shipping\Models\Shipping; // Add this
+use Modules\Shipping\Models\Shipping;
 
 class Province extends Model
 {
@@ -20,7 +20,7 @@ class Province extends Model
         return $this->hasMany(Address::class);
     }
     /**
-     * Shippings related to this province
+     * Shippings related to province
      */
     public function shippings()
     {

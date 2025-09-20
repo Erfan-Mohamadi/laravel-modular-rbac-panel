@@ -37,18 +37,10 @@ class ProductController extends Controller
         return view('product::admin.product.index', compact('products'));
     }
 
-
-
-    /**
-     * Show product creation form with required data
-     */
-    /**
-     * Show product creation form with required data
-     */
     public function create()
     {
         // Get all categories
-        $categories = Category::pluck('name', 'id');
+        $categories = Category::query()->pluck('name', 'id');
 
         // Get all active specialties with id, name, type
         $specialties = Specialty::active()->get(['id', 'name', 'type']);
@@ -74,26 +66,14 @@ class ProductController extends Controller
             'categorySpecialty'
         ));
     }
-
-
-
-    /**
-     * Store new product with relationships, images, and initial stock
-     */
-    /**
-     * Store new product with relationships, images, and initial stock
-     */
     public function store(ProductStoreRequest $request)
     {
-        // 1️⃣ Validate request
         $data = $request->validated();
         $data['status'] = $request->boolean('status', true);
         $data['discount'] = $data['discount'] ?? 0;
 
-        // 2️⃣ Create product
         $product = Product::create($data);
 
-        // 3️⃣ Handle specialty relationships with pivot data
         if ($request->filled('specialties')) {
             $specialtyData = [];
 
@@ -132,13 +112,10 @@ class ProductController extends Controller
             }
         }
 
-        // 4️⃣ Handle image uploads
         $this->handleImageUploads($request, $product);
 
-        // 5️⃣ Handle initial stock
         $this->handleInitialStock($request, $product);
 
-        // 6️⃣ Handle brands if using AJAX
         if ($request->filled('brands')) {
             $product->brands()->sync($request->brands);
         }

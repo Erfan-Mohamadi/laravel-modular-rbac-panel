@@ -15,7 +15,6 @@ return new class extends Migration
                 ->cascadeOnDelete();
             $table->string('title')->nullable();
 
-            // Use foreign keys for province and city
             $table->foreignId('province_id')
                 ->constrained('provinces')
                 ->cascadeOnDelete();

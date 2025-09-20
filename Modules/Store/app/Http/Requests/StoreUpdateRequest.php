@@ -34,7 +34,7 @@ class StoreUpdateRequest extends FormRequest
         $rules['balance'] = [
             'required',
             'integer',
-            'min:0', // Prevent negative balance
+            'min:0',
         ];
 
 

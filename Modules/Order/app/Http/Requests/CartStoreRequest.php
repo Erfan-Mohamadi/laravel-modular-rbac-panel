@@ -13,7 +13,7 @@ class CartStoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Authorization is handled by middleware
+        return true;
     }
 
     /**
@@ -22,7 +22,7 @@ class CartStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id' => 'required|integer|exists:products,id',
+            'product_id' => 'bail|required|integer|exists:products,id',
             'quantity' => 'required|integer|min:1|max:999',
         ];
     }
@@ -33,18 +33,21 @@ class CartStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'product_id.required' => 'Product ID is required.',
-            'product_id.integer' => 'Product ID must be an integer.',
-            'product_id.exists' => 'The selected product does not exist.',
-            'quantity.required' => 'Quantity is required.',
-            'quantity.integer' => 'Quantity must be an integer.',
-            'quantity.min' => 'Quantity must be at least 1.',
-            'quantity.max' => 'Quantity cannot exceed 999.',
-            'price.required' => 'Price is required.',
-            'price.integer' => 'Price must be an integer.',
-            'price.min' => 'Price must be greater than or equal to 0.'
+            'product_id.required' => 'شناسه محصول الزامی است.',
+            'product_id.integer'  => 'شناسه محصول باید یک عدد صحیح باشد.',
+            'product_id.exists'   => 'محصول انتخاب‌شده وجود ندارد.',
+
+            'quantity.required'   => 'تعداد الزامی است.',
+            'quantity.integer'    => 'تعداد باید یک عدد صحیح باشد.',
+            'quantity.min'        => 'تعداد باید حداقل ۱ باشد.',
+            'quantity.max'        => 'تعداد نمی‌تواند بیشتر از ۹۹۹ باشد.',
+
+            'price.required'      => 'قیمت الزامی است.',
+            'price.integer'       => 'قیمت باید یک عدد صحیح باشد.',
+            'price.min'           => 'قیمت باید بزرگ‌تر یا مساوی ۰ باشد.',
         ];
     }
+
 
     /**
      * Handle a failed validation attempt.
@@ -54,7 +57,7 @@ class CartStoreRequest extends FormRequest
         throw new HttpResponseException(
             response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'اعتبارسنجی ناموفق بود.',
                 'errors' => $validator->errors()
             ], 422)
         );

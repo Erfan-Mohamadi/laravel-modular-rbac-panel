@@ -8,7 +8,7 @@ class ProfileUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // You can add permission logic if needed
+        return true;
     }
 
     public function rules(): array

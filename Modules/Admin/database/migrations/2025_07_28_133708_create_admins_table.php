@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('role_id')
                 ->nullable()
                 ->constrained('roles')
-                ->nullOnDelete(); // Or ->cascadeOnDelete() based on your logic
+                ->nullOnDelete();
             $table->boolean('status')->default(1);
             $table->rememberToken();
             $table->timestamps();

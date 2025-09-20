@@ -21,7 +21,7 @@ class Address extends Model
         'address_line',
     ];
 
-    protected $with = ['province', 'city']; // Eager load relationships
+    protected $with = ['province', 'city'];
 
     public function customer()
     {

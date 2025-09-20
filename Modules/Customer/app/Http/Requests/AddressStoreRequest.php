@@ -15,10 +15,10 @@ class AddressStoreRequest extends FormRequest
     {
         return [
             'title' => 'nullable|string|max:100',
-            'province_id' => 'required|exists:provinces,id',
-            'city_id' => 'required|exists:cities,id',
+            'province_id' => 'bail|required|exists:provinces,id',
+            'city_id' => 'bail|required|exists:cities,id',
             'district' => 'nullable|string|max:100',
-            'postal_code' => 'required|string|max:20',
+            'postal_code' => 'bail|required|string|max:20',
             'address_line' => 'nullable|string|max:500',
         ];
     }

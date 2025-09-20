@@ -14,8 +14,8 @@ class SpecialtyStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'type' => 'required|in:text,select',
+            'name' => 'bail|required|string|max:255',
+            'type' => 'bail|required|in:text,select',
             'status' => 'boolean',
             'categories' => 'array',
             'categories.*' => 'exists:categories,id',

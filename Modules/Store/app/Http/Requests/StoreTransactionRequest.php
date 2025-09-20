@@ -14,9 +14,9 @@ class StoreTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id' => 'required|exists:products,id',
-            'amount' => 'required|integer|min:1',
-            'type' => 'required|in:increase,decrease',
+            'product_id' => 'bail|required|exists:products,id',
+            'amount' => 'bail|required|integer|min:1',
+            'type' => 'bail|required|in:increase,decrease',
             'description' => 'nullable|string|max:255',
         ];
     }

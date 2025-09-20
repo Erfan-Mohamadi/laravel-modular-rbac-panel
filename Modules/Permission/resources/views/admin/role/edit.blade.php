@@ -29,6 +29,8 @@
                     @csrf
                     @method('PUT')
 
+                    <input type="hidden" name="role_id" value="{{ $role->id }}">
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="name" class="form-label">نام (به انگلیسی)<span class="text-danger">*</span></label>
@@ -39,31 +41,31 @@
                             <input type="text" name="label" class="form-control" value="{{ old('label', $role->label) }}" required autocomplete="off">
                         </div>
                     </div>
-                    @if ($role->name !== $superAdminName)
 
-                    <div class="mb-3">
-                        <div style="background-color: #f0f1f2 ; border-radius: 5px" class="mb-2">
-                        <label class="form-label fw-bold" style="margin-right: 1rem">دسترسی‌ها</label>
-                        </div>
-                        @foreach($permissions->chunk(4) as $chunk)
-                            <div class="row">
-                                @foreach($chunk as $permission)
-                                    <div class="col-md-3 mb-2">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox"
-                                                   name="permissions[]"
-                                                   value="{{ $permission->name }}"
-                                                   id="permission-{{ $permission->id }}"
-                                                {{ in_array($permission->name, $rolePermissions) ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="permission-{{ $permission->id }}">
-                                                {{ $permission->label ?? $permission->name }}
-                                            </label>
-                                        </div>
-                                    </div>
-                                @endforeach
+                    @if ($role->name !== $superAdminName)
+                        <div class="mb-3">
+                            <div style="background-color: #f0f1f2 ; border-radius: 5px" class="mb-2">
+                                <label class="form-label fw-bold" style="margin-right: 1rem">دسترسی‌ها</label>
                             </div>
-                        @endforeach
-                    </div>
+                            @foreach($permissions->chunk(4) as $chunk)
+                                <div class="row">
+                                    @foreach($chunk as $permission)
+                                        <div class="col-md-3 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="permissions[]"
+                                                       value="{{ $permission->name }}"
+                                                       id="permission-{{ $permission->id }}"
+                                                    {{ in_array($permission->name, $rolePermissions) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="permission-{{ $permission->id }}">
+                                                    {{ $permission->label ?? $permission->name }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        </div>
                     @endif
 
                     <div class="d-flex justify-content-between mt-4">

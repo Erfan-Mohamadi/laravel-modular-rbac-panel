@@ -36,7 +36,6 @@ class Customer extends Authenticatable
         'status' => 'boolean',
     ];
 
-    // Relationship to addresses
     public function addresses()
     {
         return $this->hasMany(Address::class);

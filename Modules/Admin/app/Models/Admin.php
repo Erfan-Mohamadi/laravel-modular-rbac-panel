@@ -6,10 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Modules\Admin\Database\Factories\AdminFactory;
+use Modules\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use Symfony\Component\HttpKernel\Profiler\Profile;
-
-// use Modules\Admin\Database\Factories\AdminFactory;
 
 class Admin extends Authenticatable
 {
@@ -21,7 +20,7 @@ class Admin extends Authenticatable
 
     public function role()
     {
-        return $this->belongsTo(\Modules\Permission\Models\Role::class, 'role_id');
+        return $this->belongsTo(Role::class, 'role_id');
     }
 
     protected $guard_name = 'admin'; // Important!
@@ -31,6 +30,7 @@ class Admin extends Authenticatable
         'mobile',
         'password',
         'role_id',
+        'status',
     ];
 
     public function getFormattedLastLoginDateAttribute()

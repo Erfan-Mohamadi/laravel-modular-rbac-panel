@@ -16,7 +16,7 @@ class CityController extends Controller
         $cities = Cache::rememberForever('cities_list', function () {
             return City::query()->select('id', 'name', 'province_id')
                 ->with(['province:id,name'])
-                ->latest('id')
+                ->latest('province_id')
                 ->paginate(10);
         });
 
@@ -42,7 +42,7 @@ class CityController extends Controller
 
         Cache::forget('cities_list');
 
-        return redirect()->route('admin.areas.index')->with('success', 'City created successfully.');
+        return redirect()->route('cities.index')->with('success', 'شهر با موفقیت ایجاد شد.');
     }
 
     public function edit($id)
@@ -63,7 +63,7 @@ class CityController extends Controller
 
         Cache::forget('cities_list');
 
-        return redirect()->route('admin.areas.index')->with('success', 'City updated successfully.');
+        return redirect()->route('cities.index')->with('success', 'شهر با موفقیت به‌روزرسانی شد.');
     }
 
     public function destroy($id)
@@ -72,6 +72,6 @@ class CityController extends Controller
 
         Cache::forget('cities_list');
 
-        return redirect()->route('admin.areas.index')->with('success', 'City deleted successfully.');
+        return redirect()->route('cities.index')->with('success', 'شهر با موفقیت حذف شد.');
     }
 }

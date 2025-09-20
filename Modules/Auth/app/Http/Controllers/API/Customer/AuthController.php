@@ -10,7 +10,7 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-    // Step 1: Send OTP for registration
+    //Send OTP for registration
     public function sendOtp(Request $request)
     {
         $request->validate([
@@ -21,27 +21,24 @@ class AuthController extends Controller
         $otp = rand(100000, 999999);
 
         // Create customer with unverified status
-        $customer = Customer::create([
+        $customer = Customer::query()->create([
             'mobile' => $request->mobile,
             'otp' => $otp,
-            'otp_expires_at' => Carbon::now()->addMinutes(5), // 5 minute expiry
-            'status' => 0, // Unverified
+            'otp_expires_at' => Carbon::now()->addMinutes(5),
+            'status' => 0,
         ]);
 
         // TODO: Send SMS here using your SMS provider
-        // $this->sendSMS($request->mobile, "Your verification code is: $otp");
-
         return response()->json([
             'message' => 'OTP sent successfully',
-            'otp' => $otp, // Remove this in production!
+            'otp' => $otp,
             'customer_id' => $customer->id
         ]);
     }
 
-    // Step 2: Verify OTP and complete registration
+    // Verify OTP and complete registration
     public function verifyOtpAndRegister(Request $request)
     {
-        // Force customer_id to integer
         $request->merge([
             'customer_id' => (int) $request->customer_id
         ]);
@@ -53,7 +50,7 @@ class AuthController extends Controller
             'password' => 'required|string|min:6',
         ]);
 
-        $customer = Customer::find($request->customer_id);
+        $customer = Customer::query()->find($request->customer_id);
 
         // Check OTP
         if ($customer->otp !== $request->otp) {
@@ -74,7 +71,7 @@ class AuthController extends Controller
             'otp_expires_at' => null,
         ]);
 
-        // 🔹 Create wallet after registration
+        //Create wallet after registration
         if (!$customer->wallet) {
             $customer->wallet()->create(['balance' => 0]);
         }
@@ -111,15 +108,14 @@ class AuthController extends Controller
         ]);
 
         // TODO: Send SMS
-        // $this->sendSMS($customer->mobile, "Your verification code is: $otp");
 
         return response()->json([
             'message' => 'OTP resent successfully',
-            'otp' => $otp, // Remove this in production!
+            'otp' => $otp,
         ]);
     }
 
-    // Login (after registration is complete)
+    // Login
     public function login(Request $request)
     {
         $request->validate([
@@ -159,10 +155,4 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out successfully']);
     }
-
-    // TODO: Implement SMS sending method
-    // private function sendSMS($mobile, $message)
-    // {
-    //     // Integrate with your SMS provider (Kavenegar, etc.)
-    // }
 }

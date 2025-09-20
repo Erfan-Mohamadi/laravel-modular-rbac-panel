@@ -29,7 +29,6 @@ class CustomerController extends Controller
         $customers = Cache::remember($cacheKey, 30, function () use ($filters) {
             $query = Customer::query()->select('id', 'name', 'email', 'mobile', 'status', 'created_at', 'deleted_at');
 
-            // Include trashed customers if requested
             if (!empty($filters['trashed']) && $filters['trashed'] == 1) {
                 $query->onlyTrashed();
             }

@@ -7,7 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
-use Modules\Admin\Models\Admin;  // Import Admin model
+use Modules\Admin\Models\Admin;
 
 class AuthController extends Controller
 {
@@ -26,13 +26,11 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        // Validate login credentials
         $credentials = $request->validate([
             'mobile' => ['required', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:6'],
         ]);
 
-        // Attempt authentication using admin guard
         if (Auth::guard('admin')->attempt(
             ['mobile' => $credentials['mobile'], 'password' => $credentials['password']],
             $request->boolean('remember')
@@ -41,11 +39,9 @@ class AuthController extends Controller
 
             $admin = Auth::guard('admin')->user();
 
-            // Update last login date
             $admin->last_login_date = now();
             $admin->save();
 
-            // Optional login event
             activity('احراز هویت')
                 ->causedBy($admin)
                 ->withProperties(['موبایل' => $admin->mobile])
@@ -54,7 +50,6 @@ class AuthController extends Controller
             return redirect()->intended('/admin');
         }
 
-        // Failed authentication
         return back()->withErrors([
             'mobile' => 'اطلاعات وارد شده اشتباه است!',
         ])->onlyInput('mobile');

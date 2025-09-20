@@ -13,7 +13,7 @@ class CartUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Authorization is handled by middleware
+        return true;
     }
 
     /**
@@ -57,7 +57,7 @@ class CartUpdateRequest extends FormRequest
         throw new HttpResponseException(
             response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'اعتبارسنجی ناموفق بود.',
                 'errors' => $validator->errors()
             ], 422)
         );

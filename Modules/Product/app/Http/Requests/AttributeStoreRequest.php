@@ -16,6 +16,7 @@ class AttributeStoreRequest extends FormRequest
     {
         return [
             'name' => [
+                'bail',
                 'required',
                 'string',
                 'max:255',
@@ -23,11 +24,13 @@ class AttributeStoreRequest extends FormRequest
                 Rule::unique('attributes'),
             ],
             'label' => [
+                'bail',
                 'required',
                 'string',
                 'max:255',
             ],
             'type' => [
+                'bail',
                 'required',
                 'in:select',
             ],

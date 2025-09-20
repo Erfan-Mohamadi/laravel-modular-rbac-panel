@@ -52,15 +52,6 @@ class Cart extends Model
     {
         return $this->belongsTo(Customer::class);
     }
-
-    /**
-     * The total_price is a virtual column in the database.
-     * No need for accessor since it's calculated by the database.
-     *
-     * Note: The total_price column is defined as a virtual column:
-     * $table->unsignedBigInteger('total_price')->virtualAs('price * quantity');
-     */
-
     /**
      * Scope to get cart items for a specific customer.
      */

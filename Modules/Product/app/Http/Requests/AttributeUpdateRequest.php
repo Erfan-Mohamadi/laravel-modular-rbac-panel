@@ -25,7 +25,6 @@ class AttributeUpdateRequest extends FormRequest
         $attributeId = $this->route('attribute')?->id;
         $rules = [...$this->storeRequest->rules()];
 
-        // Override the name rule for update
         $rules['name'] = [
             'required',
             'string',
@@ -34,10 +33,8 @@ class AttributeUpdateRequest extends FormRequest
             Rule::unique('attributes')->ignore($attributeId),
         ];
 
-        // Remove type validation for update
         unset($rules['type']);
 
-        // Remove items validation for update (since we don't edit items in update form)
         unset($rules['items']);
 
         return $rules;

@@ -18,7 +18,7 @@ class AdminController extends Controller
     public function index()
     {
         $admins = Cache::rememberForever('admins_list', function () {
-            return Admin::with('role')->latest()->get();
+            return Admin::with('role')->latest('id')->get();
         });
 
         return view('admin::admin.admin.index', compact('admins'));
@@ -45,9 +45,8 @@ class AdminController extends Controller
 
         $validated['password'] = bcrypt($validated['password']);
 
-        Admin::create($validated);
+        Admin::query()->create($validated);
 
-        // Clear admins cache on create
         Cache::forget('admins_list');
 
         return redirect()->route('admin.index')->with('success', 'ادمین با موفقیت اضافه شد.');
@@ -103,7 +102,6 @@ class AdminController extends Controller
 
         $admin->delete();
 
-        // Clear admins cache on delete
         Cache::forget('admins_list');
 
         return redirect()->route('admin.index')->with('success', 'ادمین با موفقیت حذف شد.');

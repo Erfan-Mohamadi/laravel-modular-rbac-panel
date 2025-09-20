@@ -7,10 +7,8 @@ use Modules\Area\Models\Province;
 
 class Shipping extends Model
 {
-    // Explicit table name since your table is called shipping_table
     protected $table = 'shippings';
 
-    // Mass assignable attributes
     protected $fillable = [
         'name',
         'image',

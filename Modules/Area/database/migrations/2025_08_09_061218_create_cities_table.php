@@ -12,7 +12,6 @@ class CreateCitiesTable extends Migration
             $table->id();
             $table->string('name');
 
-            // Make province_id unsignedBigInteger and add foreign key constraint
             $table->unsignedBigInteger('province_id');
             $table->foreign('province_id')->references('id')->on('provinces')->onDelete('cascade');
 

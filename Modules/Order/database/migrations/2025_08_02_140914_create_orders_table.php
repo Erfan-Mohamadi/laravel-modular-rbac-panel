@@ -19,7 +19,7 @@ return new class extends Migration
             $table->enum('status', ['new', 'wait_for_payment', 'in_progress', 'delivered', 'failed'])
                 ->default('new');
 
-            $table->foreignId('address_id')->nullable()->constrained('addresses'); // Keep for reference
+            $table->foreignId('address_id')->nullable()->constrained('addresses');
             $table->text('formatted_address'); // Store complete formatted address
             $table->unsignedBigInteger('shipping_cost')->default(0);
 

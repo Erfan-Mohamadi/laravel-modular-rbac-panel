@@ -43,6 +43,7 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview" role="navigation" aria-label="Navigation 7">
+                        @if(auth()->user()->hasRole('super_admin'))
                         <li class="nav-item" >
                             <a class="nav-link" href="{{ route('roles.index') }}">
                                 <i class="nav-icon bi bi-shield-lock"></i>
@@ -55,6 +56,7 @@
                                 <p>مدیریت ادمین‌ها</p>
                             </a>
                         </li>
+                        @endif
                         <li class="nav-item">
                             <a href="#" class="nav-link">
                                 <i class="nav-icon bi bi-tree-fill"></i>

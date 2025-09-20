@@ -78,7 +78,6 @@ class OrderController extends Controller
             'failed' => 'لغو شده'
         ];
 
-        // Shipping cost from order
         $shippingPrice = $order->shipping_cost ?? 0;
 
         return view('order::Admin.order.show', compact('order', 'statusOptions', 'shippingPrice'));
@@ -97,7 +96,6 @@ class OrderController extends Controller
             $oldStatus = $order->status;
             $newStatus = $request->status;
 
-            // Prevent canceling paid orders directly
             if ($order->invoice && $order->invoice->isPaid() && $newStatus === 'failed') {
                 return redirect()->back()->with('error', 'نمی‌توان سفارش پرداخت شده را لغو کرد.');
             }
@@ -115,7 +113,6 @@ class OrderController extends Controller
                         $store->increment('balance', $item->quantity);
                     }
 
-                    // Process wallet refund for cancelled paid orders
                     $this->processWalletRefund($order, 'تغییر وضعیت سفارش به لغو شده');
                 }
 
@@ -158,7 +155,6 @@ class OrderController extends Controller
             DB::transaction(function () use ($order) {
                 $order->update(['status' => 'failed']);
 
-                // Restore inventory
                 foreach ($order->orderItems as $item) {
                     $store = Store::firstOrCreate(
                         ['product_id' => $item->product_id],
@@ -167,7 +163,6 @@ class OrderController extends Controller
                     $store->increment('balance', $item->quantity);
                 }
 
-                // Process wallet refund
                 $this->processWalletRefund($order, 'لغو سفارش');
 
                 if ($order->invoice && !$order->invoice->isPaid()) {
@@ -189,7 +184,6 @@ class OrderController extends Controller
     {
         try {
             DB::transaction(function () use ($order) {
-                // Restore inventory if not already failed
                 if ($order->status !== 'failed') {
                     foreach ($order->orderItems as $item) {
                         $store = Store::firstOrCreate(
@@ -199,7 +193,6 @@ class OrderController extends Controller
                         $store->increment('balance', $item->quantity);
                     }
 
-                    // Process wallet refund before deleting
                     $this->processWalletRefund($order, 'حذف سفارش');
                 }
 
@@ -224,37 +217,30 @@ class OrderController extends Controller
      */
     private function processWalletRefund(Order $order, string $description): void
     {
-        // Only process refund if the order was paid
         if (!$order->invoice || !$order->invoice->isPaid()) {
             return;
         }
 
-        // Get or create customer wallet
         $wallet = Wallet::firstOrCreate(
             ['customer_id' => $order->customer_id],
             ['balance' => 0]
         );
 
-        // Calculate refund amount - try different possible field names
         $refundAmount = $order->total_amount
             ?? $order->total_price
             ?? $order->amount
             ?? $order->total
             ?? 0;
 
-        // Calculate from order items if total is still null/zero
         if (!$refundAmount && $order->orderItems) {
             $refundAmount = $order->orderItems->sum(function ($item) {
                 return $item->price * $item->quantity;
             });
 
-            // Add shipping cost if available
             $refundAmount += $order->shipping_cost ?? 0;
         }
 
-        // Only process refund if we have a valid amount
         if ($refundAmount > 0) {
-            // Create refund transaction
             $wallet->refund(
                 (int) $refundAmount,
                 $description . " - سفارش #{$order->id}",

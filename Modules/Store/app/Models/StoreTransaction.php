@@ -113,13 +113,4 @@ class StoreTransaction extends Model
     {
         return $this->type === self::TYPE_DECREMENT;
     }
-
-    //======================================================================
-    // FACTORY
-    //======================================================================
-
-    protected static function newFactory()
-    {
-        return \Modules\Store\Database\factories\StoreTransactionFactory::new();
-    }
 }
